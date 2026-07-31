@@ -65,7 +65,7 @@ interface HeaderProps {
 
 export function Header({ onMenuClick }: HeaderProps) {
   const location = useLocation()
-  const title = PAGE_TITLES[location.pathname] ?? 'Transformer AI ERP'
+  const title = PAGE_TITLES[location.pathname] ?? 'TransFlow AI ERP'
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-background px-4 sm:px-6">

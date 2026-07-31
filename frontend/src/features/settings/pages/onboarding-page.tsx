@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { TransformerErpMark } from '@/components/brand/transformer-erp-mark'
+import { TransFlowMark } from '@/components/brand/transflow-mark'
 import { companyOnboardingSchema, industryTypes, type CompanyOnboardingFormValues } from '@/features/settings/schemas/company-schemas'
 import { useCreateCompany } from '@/features/settings/hooks/use-create-company'
 
@@ -40,9 +40,9 @@ export function OnboardingPage() {
       <div className="w-full max-w-md space-y-8">
         <div className="flex items-center gap-2">
           <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <TransformerErpMark className="size-5" />
+            <TransFlowMark className="size-5" />
           </div>
-          <span className="text-lg font-semibold text-foreground">Transformer AI ERP</span>
+          <span className="text-lg font-semibold text-foreground">TransFlow AI ERP</span>
         </div>
 
         <div className="space-y-1.5">
