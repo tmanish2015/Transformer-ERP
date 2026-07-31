@@ -1475,6 +1475,7 @@ export type Database = {
           conducted_by: string | null
           status: string
           findings: string | null
+          notes: string | null
           created_by: string | null
           created_at: string
           updated_at: string
