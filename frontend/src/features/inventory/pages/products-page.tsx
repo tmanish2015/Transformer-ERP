@@ -16,7 +16,7 @@ import { ImportExportToolbar, type ImportResult } from '@/components/shared/impo
 import { useCategories } from '@/features/inventory/hooks/use-categories'
 import { useBrands } from '@/features/inventory/hooks/use-brands'
 import { useUnits } from '@/features/inventory/hooks/use-units'
-import { useCreateProduct, useDeleteProduct, useProducts } from '@/features/inventory/hooks/use-products'
+import { useCreateProduct, useDeleteAllProducts, useDeleteProduct, useProducts } from '@/features/inventory/hooks/use-products'
 import { ProductFormDialog } from '@/features/inventory/components/product-form-dialog'
 import { getStockStatus, type ProductWithRelations } from '@/features/inventory/types/inventory-types'
 import type { ExcelColumn } from '@/lib/excel-io'
@@ -55,6 +55,7 @@ export function ProductsPage() {
   const { data: units } = useUnits()
   const createProduct = useCreateProduct()
   const deleteProduct = useDeleteProduct()
+  const deleteAllProducts = useDeleteAllProducts()
   const [searchParams] = useSearchParams()
 
   const [search, setSearch] = useState(searchParams.get('q') ?? '')
@@ -217,7 +218,13 @@ export function ProductsPage() {
                   }))
                 }
                 importColumns={PRODUCT_EXPORT_COLUMNS}
+                importDescription="Upload an .xlsx file with your products. Category, Brand, and Unit must match existing names exactly."
                 onImport={handleImportProducts}
+                onClearExisting={async () => {
+                  const count = products?.length ?? 0
+                  await deleteAllProducts.mutateAsync()
+                  return count
+                }}
               />
               <Button
                 onClick={() => {

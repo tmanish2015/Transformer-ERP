@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { createCustomer, deleteCustomer, fetchCustomers, updateCustomer } from '@/features/sales/api/sales-api'
+import { createCustomer, deleteAllCustomers, deleteCustomer, fetchCustomers, updateCustomer } from '@/features/sales/api/sales-api'
 import type { CustomerFormValues } from '@/features/sales/schemas/sales-schemas'
 
 const KEY = 'customers'
@@ -42,5 +42,13 @@ export function useDeleteCustomer() {
       toast.success('Customer deleted')
     },
     onError: (error) => toast.error(error.message),
+  })
+}
+
+export function useDeleteAllCustomers() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteAllCustomers,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [KEY] }),
   })
 }

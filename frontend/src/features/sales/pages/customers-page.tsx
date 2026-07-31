@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { ImportExportToolbar, type ImportResult } from '@/components/shared/import-export-toolbar'
 import { customerSchema, type CustomerFormInput, type CustomerFormValues } from '@/features/sales/schemas/sales-schemas'
-import { useCreateCustomer, useCustomers, useDeleteCustomer, useUpdateCustomer } from '@/features/sales/hooks/use-customers'
+import { useCreateCustomer, useCustomers, useDeleteAllCustomers, useDeleteCustomer, useUpdateCustomer } from '@/features/sales/hooks/use-customers'
 import { CUSTOMER_STATUS_LABELS, type Customer, type CustomerStatus } from '@/features/sales/types/sales-types'
 import type { ExcelColumn } from '@/lib/excel-io'
 import { useAuth } from '@/providers/auth-provider'
@@ -173,6 +173,7 @@ export function CustomersPage() {
   const createCustomer = useCreateCustomer()
   const updateCustomer = useUpdateCustomer()
   const deleteCustomer = useDeleteCustomer()
+  const deleteAllCustomers = useDeleteAllCustomers()
 
   const [search, setSearch] = useState('')
   const [formOpen, setFormOpen] = useState(false)
@@ -286,7 +287,13 @@ export function CustomersPage() {
                   }))
                 }
                 importColumns={CUSTOMER_EXPORT_COLUMNS}
+                importDescription="Upload an .xlsx file with your customers. Status must be one of: lead, prospect, active, inactive, churned."
                 onImport={handleImportCustomers}
+                onClearExisting={async () => {
+                  const count = data?.length ?? 0
+                  await deleteAllCustomers.mutateAsync()
+                  return count
+                }}
               />
               <Button
                 onClick={() => {

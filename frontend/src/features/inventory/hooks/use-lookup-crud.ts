@@ -50,5 +50,15 @@ export function createLookupHooks<T extends LookupTable>(table: T, queryKey: str
     })
   }
 
-  return { useList, useCreate, useUpdate, useRemove }
+  function useRemoveAll() {
+    const queryClient = useQueryClient()
+    return useMutation({
+      mutationFn: () => api.removeAll(),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [queryKey] })
+      },
+    })
+  }
+
+  return { useList, useCreate, useUpdate, useRemove, useRemoveAll }
 }

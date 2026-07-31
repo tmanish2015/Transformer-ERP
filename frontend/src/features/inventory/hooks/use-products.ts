@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { createProduct, deleteProduct, fetchProducts, updateProduct } from '@/features/inventory/api/products-api'
+import { createProduct, deleteAllProducts, deleteProduct, fetchProducts, updateProduct } from '@/features/inventory/api/products-api'
 import type { ProductFormValues } from '@/features/inventory/schemas/inventory-schemas'
 
 const PRODUCTS_KEY = 'inventory-products'
@@ -42,5 +42,13 @@ export function useDeleteProduct() {
       toast.success('Product deleted')
     },
     onError: (error) => toast.error(error.message),
+  })
+}
+
+export function useDeleteAllProducts() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteAllProducts,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [PRODUCTS_KEY] }),
   })
 }

@@ -45,3 +45,8 @@ export async function deleteProduct(id: string) {
   const { error } = await supabase.from('products').delete().eq('id', id)
   if (error) throw error
 }
+
+export async function deleteAllProducts() {
+  const { error } = await supabase.from('products').delete().not('id', 'is', null)
+  if (error) throw error
+}

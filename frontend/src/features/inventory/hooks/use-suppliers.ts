@@ -6,3 +6,4 @@ export const useSuppliers = hooks.useList
 export const useCreateSupplier = hooks.useCreate
 export const useUpdateSupplier = hooks.useUpdate
 export const useDeleteSupplier = hooks.useRemove
+export const useDeleteAllSuppliers = hooks.useRemoveAll

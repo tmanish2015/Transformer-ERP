@@ -48,6 +48,11 @@ export async function deleteCustomer(id: string) {
   if (error) throw error
 }
 
+export async function deleteAllCustomers() {
+  const { error } = await supabase.from('customers').delete().not('id', 'is', null)
+  if (error) throw error
+}
+
 // ---------- Quotations ----------
 
 export async function fetchQuotations(): Promise<QuotationWithRelations[]> {

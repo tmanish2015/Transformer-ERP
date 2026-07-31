@@ -17,7 +17,7 @@ export function createLookupApi<T extends LookupTable>(table: T, orderBy = 'name
       update: (
         values: unknown,
       ) => { eq: (col: string, value: string) => { select: () => { single: () => Promise<{ data: unknown; error: Error | null }> } } }
-      delete: () => { eq: (col: string, value: string) => Promise<{ error: Error | null }> }
+      delete: () => { eq: (col: string, value: string) => Promise<{ error: Error | null }>; not: (col: string, op: string, value: null) => Promise<{ error: Error | null }> }
     }
   }
 
@@ -39,6 +39,10 @@ export function createLookupApi<T extends LookupTable>(table: T, orderBy = 'name
     },
     remove: async (id: string): Promise<void> => {
       const { error } = await client.from(table).delete().eq('id', id)
+      if (error) throw error
+    },
+    removeAll: async (): Promise<void> => {
+      const { error } = await client.from(table).delete().not('id', 'is', null)
       if (error) throw error
     },
   }

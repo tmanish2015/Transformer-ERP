@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { ImportExportToolbar, type ImportResult } from '@/components/shared/import-export-toolbar'
 import { supplierSchema, type SupplierFormValues } from '@/features/inventory/schemas/inventory-schemas'
-import { useCreateSupplier, useDeleteSupplier, useSuppliers, useUpdateSupplier } from '@/features/inventory/hooks/use-suppliers'
+import { useCreateSupplier, useDeleteAllSuppliers, useDeleteSupplier, useSuppliers, useUpdateSupplier } from '@/features/inventory/hooks/use-suppliers'
 import type { Supplier } from '@/features/inventory/types/inventory-types'
 import type { ExcelColumn } from '@/lib/excel-io'
 
@@ -121,6 +121,7 @@ export function SuppliersPage() {
   const createSupplier = useCreateSupplier()
   const updateSupplier = useUpdateSupplier()
   const deleteSupplier = useDeleteSupplier()
+  const deleteAllSuppliers = useDeleteAllSuppliers()
 
   const [search, setSearch] = useState('')
   const [formOpen, setFormOpen] = useState(false)
@@ -210,7 +211,13 @@ export function SuppliersPage() {
                 }))
               }
               importColumns={SUPPLIER_EXPORT_COLUMNS}
+              importDescription="Upload an .xlsx file with your suppliers."
               onImport={handleImportSuppliers}
+              onClearExisting={async () => {
+                const count = data?.length ?? 0
+                await deleteAllSuppliers.mutateAsync()
+                return count
+              }}
             />
             <Button
               onClick={() => {
