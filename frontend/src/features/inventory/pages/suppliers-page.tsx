@@ -14,9 +14,20 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { ImportExportToolbar, type ImportResult } from '@/components/shared/import-export-toolbar'
 import { supplierSchema, type SupplierFormValues } from '@/features/inventory/schemas/inventory-schemas'
 import { useCreateSupplier, useDeleteSupplier, useSuppliers, useUpdateSupplier } from '@/features/inventory/hooks/use-suppliers'
 import type { Supplier } from '@/features/inventory/types/inventory-types'
+import type { ExcelColumn } from '@/lib/excel-io'
+
+const SUPPLIER_EXPORT_COLUMNS: ExcelColumn[] = [
+  { header: 'Company Name', key: 'name' },
+  { header: 'Contact Person', key: 'contact_person' },
+  { header: 'Email', key: 'email' },
+  { header: 'Phone', key: 'phone' },
+  { header: 'GSTIN', key: 'gstin' },
+  { header: 'Address', key: 'address' },
+]
 
 function SupplierFormDialog({ open, onOpenChange, supplier }: { open: boolean; onOpenChange: (open: boolean) => void; supplier: Supplier | null }) {
   const createSupplier = useCreateSupplier()
@@ -107,6 +118,7 @@ function SupplierFormDialog({ open, onOpenChange, supplier }: { open: boolean; o
 
 export function SuppliersPage() {
   const { data, isLoading } = useSuppliers()
+  const createSupplier = useCreateSupplier()
   const updateSupplier = useUpdateSupplier()
   const deleteSupplier = useDeleteSupplier()
 
@@ -150,20 +162,65 @@ export function SuppliersPage() {
     },
   ]
 
+  const handleImportSuppliers = async (rows: Record<string, string>[]): Promise<ImportResult> => {
+    const errors: ImportResult['errors'] = []
+    let successCount = 0
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i]
+      const rowNum = i + 2
+      try {
+        if (!r.name) throw new Error('Company Name is required')
+        await createSupplier.mutateAsync({
+          name: r.name,
+          contact_person: r.contact_person || '',
+          email: r.email || '',
+          phone: r.phone || '',
+          gstin: r.gstin || '',
+          address: r.address || '',
+        })
+        successCount++
+      } catch (err) {
+        errors.push({ row: rowNum, message: err instanceof Error ? err.message : 'Failed to import row' })
+      }
+    }
+
+    return { successCount, errors }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Suppliers"
         description="Manage vendors and supplier relationships."
         actions={
-          <Button
-            onClick={() => {
-              setEditingSupplier(null)
-              setFormOpen(true)
-            }}
-          >
-            <Plus /> Add Supplier
-          </Button>
+          <div className="flex items-center gap-2">
+            <ImportExportToolbar
+              entityLabel="Suppliers"
+              exportFilename="suppliers.xlsx"
+              exportColumns={SUPPLIER_EXPORT_COLUMNS}
+              getExportRows={() =>
+                (data ?? []).map((s) => ({
+                  name: s.name,
+                  contact_person: s.contact_person ?? '',
+                  email: s.email ?? '',
+                  phone: s.phone ?? '',
+                  gstin: s.gstin ?? '',
+                  address: s.address ?? '',
+                }))
+              }
+              importColumns={SUPPLIER_EXPORT_COLUMNS}
+              onImport={handleImportSuppliers}
+            />
+            <Button
+              onClick={() => {
+                setEditingSupplier(null)
+                setFormOpen(true)
+              }}
+            >
+              <Plus /> Add Supplier
+            </Button>
+          </div>
         }
       />
 

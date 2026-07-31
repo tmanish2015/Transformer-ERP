@@ -17,10 +17,25 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { ImportExportToolbar, type ImportResult } from '@/components/shared/import-export-toolbar'
 import { customerSchema, type CustomerFormInput, type CustomerFormValues } from '@/features/sales/schemas/sales-schemas'
 import { useCreateCustomer, useCustomers, useDeleteCustomer, useUpdateCustomer } from '@/features/sales/hooks/use-customers'
-import { CUSTOMER_STATUS_LABELS, type Customer } from '@/features/sales/types/sales-types'
+import { CUSTOMER_STATUS_LABELS, type Customer, type CustomerStatus } from '@/features/sales/types/sales-types'
+import type { ExcelColumn } from '@/lib/excel-io'
 import { useAuth } from '@/providers/auth-provider'
+
+const CUSTOMER_EXPORT_COLUMNS: ExcelColumn[] = [
+  { header: 'Name', key: 'name' },
+  { header: 'Contact Person', key: 'contact_person' },
+  { header: 'Email', key: 'email' },
+  { header: 'Phone', key: 'phone' },
+  { header: 'Billing Address', key: 'billing_address' },
+  { header: 'Shipping Address', key: 'shipping_address' },
+  { header: 'GSTIN', key: 'gstin' },
+  { header: 'Credit Limit', key: 'credit_limit' },
+  { header: 'Credit Days', key: 'credit_days' },
+  { header: 'Status', key: 'status' },
+]
 
 function CustomerFormDialog({ open, onOpenChange, customer }: { open: boolean; onOpenChange: (open: boolean) => void; customer: Customer | null }) {
   const createCustomer = useCreateCustomer()
@@ -155,6 +170,7 @@ export function CustomersPage() {
   const canManage = hasPermission('sales.manage')
 
   const { data, isLoading } = useCustomers()
+  const createCustomer = useCreateCustomer()
   const updateCustomer = useUpdateCustomer()
   const deleteCustomer = useDeleteCustomer()
 
@@ -209,6 +225,40 @@ export function CustomersPage() {
     },
   ]
 
+  const handleImportCustomers = async (rows: Record<string, string>[]): Promise<ImportResult> => {
+    const errors: ImportResult['errors'] = []
+    let successCount = 0
+    const validStatuses: CustomerStatus[] = ['lead', 'prospect', 'active', 'inactive', 'churned']
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i]
+      const rowNum = i + 2
+      try {
+        if (!r.name) throw new Error('Name is required')
+        const rawStatus = (r.status || 'lead').trim().toLowerCase() as CustomerStatus
+        if (r.status && !validStatuses.includes(rawStatus)) throw new Error(`Status "${r.status}" is invalid (expected one of ${validStatuses.join(', ')})`)
+
+        await createCustomer.mutateAsync({
+          name: r.name,
+          contact_person: r.contact_person || '',
+          email: r.email || '',
+          phone: r.phone || '',
+          billing_address: r.billing_address || '',
+          shipping_address: r.shipping_address || '',
+          gstin: r.gstin || '',
+          credit_limit: Number(r.credit_limit) || 0,
+          credit_days: Number(r.credit_days) || 0,
+          status: rawStatus,
+        })
+        successCount++
+      } catch (err) {
+        errors.push({ row: rowNum, message: err instanceof Error ? err.message : 'Failed to import row' })
+      }
+    }
+
+    return { successCount, errors }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -216,14 +266,37 @@ export function CustomersPage() {
         description="Manage customer accounts and credit terms."
         actions={
           canManage && (
-            <Button
-              onClick={() => {
-                setEditingCustomer(null)
-                setFormOpen(true)
-              }}
-            >
-              <Plus /> Add Customer
-            </Button>
+            <div className="flex items-center gap-2">
+              <ImportExportToolbar
+                entityLabel="Customers"
+                exportFilename="customers.xlsx"
+                exportColumns={CUSTOMER_EXPORT_COLUMNS}
+                getExportRows={() =>
+                  (data ?? []).map((c) => ({
+                    name: c.name,
+                    contact_person: c.contact_person ?? '',
+                    email: c.email ?? '',
+                    phone: c.phone ?? '',
+                    billing_address: c.billing_address ?? '',
+                    shipping_address: c.shipping_address ?? '',
+                    gstin: c.gstin ?? '',
+                    credit_limit: c.credit_limit,
+                    credit_days: c.credit_days,
+                    status: c.status,
+                  }))
+                }
+                importColumns={CUSTOMER_EXPORT_COLUMNS}
+                onImport={handleImportCustomers}
+              />
+              <Button
+                onClick={() => {
+                  setEditingCustomer(null)
+                  setFormOpen(true)
+                }}
+              >
+                <Plus /> Add Customer
+              </Button>
+            </div>
           )
         }
       />

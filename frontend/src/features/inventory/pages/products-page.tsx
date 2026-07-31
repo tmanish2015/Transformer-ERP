@@ -12,12 +12,32 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { ImportExportToolbar, type ImportResult } from '@/components/shared/import-export-toolbar'
 import { useCategories } from '@/features/inventory/hooks/use-categories'
 import { useBrands } from '@/features/inventory/hooks/use-brands'
-import { useDeleteProduct, useProducts } from '@/features/inventory/hooks/use-products'
+import { useUnits } from '@/features/inventory/hooks/use-units'
+import { useCreateProduct, useDeleteProduct, useProducts } from '@/features/inventory/hooks/use-products'
 import { ProductFormDialog } from '@/features/inventory/components/product-form-dialog'
 import { getStockStatus, type ProductWithRelations } from '@/features/inventory/types/inventory-types'
+import type { ExcelColumn } from '@/lib/excel-io'
 import { useAuth } from '@/providers/auth-provider'
+
+const PRODUCT_EXPORT_COLUMNS: ExcelColumn[] = [
+  { header: 'SKU', key: 'sku' },
+  { header: 'Name', key: 'name' },
+  { header: 'Description', key: 'description' },
+  { header: 'Category', key: 'category' },
+  { header: 'Brand', key: 'brand' },
+  { header: 'Unit', key: 'unit' },
+  { header: 'HSN Code', key: 'hsn_code' },
+  { header: 'GST Rate', key: 'gst_rate' },
+  { header: 'Purchase Price', key: 'purchase_price' },
+  { header: 'Selling Price', key: 'selling_price' },
+  { header: 'Barcode', key: 'barcode' },
+  { header: 'Reorder Level', key: 'reorder_level' },
+  { header: 'Reorder Quantity', key: 'reorder_quantity' },
+  { header: 'Active', key: 'is_active' },
+]
 
 const STATUS_LABELS: Record<string, string> = {
   in_stock: 'In Stock',
@@ -32,6 +52,8 @@ export function ProductsPage() {
   const { data: products, isLoading } = useProducts()
   const { data: categories } = useCategories()
   const { data: brands } = useBrands()
+  const { data: units } = useUnits()
+  const createProduct = useCreateProduct()
   const deleteProduct = useDeleteProduct()
   const [searchParams] = useSearchParams()
 
@@ -122,6 +144,48 @@ export function ProductsPage() {
     },
   ]
 
+  const handleImportProducts = async (rows: Record<string, string>[]): Promise<ImportResult> => {
+    const errors: ImportResult['errors'] = []
+    let successCount = 0
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i]
+      const rowNum = i + 2
+      try {
+        if (!r.sku) throw new Error('SKU is required')
+        if (!r.name) throw new Error('Name is required')
+        const unit = units?.find((u) => u.name.toLowerCase() === r.unit?.toLowerCase() || u.short_code.toLowerCase() === r.unit?.toLowerCase())
+        if (!unit) throw new Error(`Unit "${r.unit || ''}" not found`)
+        const category = r.category ? categories?.find((c) => c.name.toLowerCase() === r.category.toLowerCase()) : undefined
+        const brand = r.brand ? brands?.find((b) => b.name.toLowerCase() === r.brand.toLowerCase()) : undefined
+
+        await createProduct.mutateAsync({
+          sku: r.sku,
+          name: r.name,
+          description: r.description || '',
+          category_id: category?.id ?? null,
+          brand_id: brand?.id ?? null,
+          unit_id: unit.id,
+          hsn_code: r.hsn_code || '',
+          gst_rate: Number(r.gst_rate) || 0,
+          purchase_price: Number(r.purchase_price) || 0,
+          selling_price: Number(r.selling_price) || 0,
+          barcode: r.barcode || '',
+          reorder_level: Number(r.reorder_level) || 0,
+          reorder_quantity: Number(r.reorder_quantity) || 0,
+          is_batch_tracked: false,
+          is_serial_tracked: false,
+          is_active: r.is_active.trim().toLowerCase() !== 'no' && r.is_active.trim().toLowerCase() !== 'false',
+        })
+        successCount++
+      } catch (err) {
+        errors.push({ row: rowNum, message: err instanceof Error ? err.message : 'Failed to import row' })
+      }
+    }
+
+    return { successCount, errors }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -129,14 +193,41 @@ export function ProductsPage() {
         description="Manage your full product catalog, pricing, and tax details."
         actions={
           canManage && (
-            <Button
-              onClick={() => {
-                setEditingProduct(null)
-                setFormOpen(true)
-              }}
-            >
-              <Plus /> Add Product
-            </Button>
+            <div className="flex items-center gap-2">
+              <ImportExportToolbar
+                entityLabel="Products"
+                exportFilename="products.xlsx"
+                exportColumns={PRODUCT_EXPORT_COLUMNS}
+                getExportRows={() =>
+                  (products ?? []).map((p) => ({
+                    sku: p.sku,
+                    name: p.name,
+                    description: p.description ?? '',
+                    category: p.category?.name ?? '',
+                    brand: p.brand?.name ?? '',
+                    unit: p.unit.short_code,
+                    hsn_code: p.hsn_code ?? '',
+                    gst_rate: p.gst_rate,
+                    purchase_price: p.purchase_price,
+                    selling_price: p.selling_price,
+                    barcode: p.barcode ?? '',
+                    reorder_level: p.reorder_level,
+                    reorder_quantity: p.reorder_quantity,
+                    is_active: p.is_active ? 'Yes' : 'No',
+                  }))
+                }
+                importColumns={PRODUCT_EXPORT_COLUMNS}
+                onImport={handleImportProducts}
+              />
+              <Button
+                onClick={() => {
+                  setEditingProduct(null)
+                  setFormOpen(true)
+                }}
+              >
+                <Plus /> Add Product
+              </Button>
+            </div>
           )
         }
       />
