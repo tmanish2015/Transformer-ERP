@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { navItems, type NavEntry } from '@/components/layout/nav-items'
+import { navSections, type NavEntry } from '@/components/layout/nav-items'
 import { useAuth } from '@/providers/auth-provider'
 import { useLicense } from '@/providers/license-provider'
 
@@ -57,21 +57,29 @@ function NavGroupItem({ entry, onNavigate }: { entry: Extract<NavEntry, { type: 
 export function NavLinks({ onNavigate }: NavLinksProps) {
   const { hasPermission } = useAuth()
   const { hasModule, hasFeature } = useLicense()
-  const visibleItems = navItems.filter(
-    (item) => (!item.permission || hasPermission(item.permission)) && (!item.module || hasModule(item.module)) && (!item.feature || hasFeature(item.feature)),
-  )
+  const isVisible = (entry: NavEntry) =>
+    (!entry.permission || hasPermission(entry.permission)) && (!entry.module || hasModule(entry.module)) && (!entry.feature || hasFeature(entry.feature))
 
   return (
-    <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-      {visibleItems.map((entry) => {
-        if (entry.type === 'group') {
-          return <NavGroupItem key={entry.label} entry={entry} onNavigate={onNavigate} />
-        }
+    <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
+      {navSections.map((section) => {
+        const visibleEntries = section.entries.filter(isVisible)
+        if (visibleEntries.length === 0) return null
+
         return (
-          <NavLink key={entry.to} to={entry.to} end={entry.to === '/'} onClick={onNavigate} className={({ isActive }) => cn(linkClasses, isActive && activeLinkClasses)}>
-            <entry.icon className="size-4" />
-            {entry.label}
-          </NavLink>
+          <div key={section.label} className="space-y-1">
+            <p className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-sidebar-foreground/40 uppercase">{section.label}</p>
+            {visibleEntries.map((entry) =>
+              entry.type === 'group' ? (
+                <NavGroupItem key={entry.label} entry={entry} onNavigate={onNavigate} />
+              ) : (
+                <NavLink key={entry.to} to={entry.to} end={entry.to === '/'} onClick={onNavigate} className={({ isActive }) => cn(linkClasses, isActive && activeLinkClasses)}>
+                  <entry.icon className="size-4" />
+                  {entry.label}
+                </NavLink>
+              ),
+            )}
+          </div>
         )
       })}
     </nav>
