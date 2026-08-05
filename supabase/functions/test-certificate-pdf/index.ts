@@ -13,15 +13,27 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { PDFDocument, StandardFonts, rgb } from 'npm:pdf-lib@1.17.1'
 
+// Edge functions run on a different origin (supabase.co) than the frontend, so every
+// response — including the preflight OPTIONS request the browser sends automatically
+// before a cross-origin POST with a JSON body — needs CORS headers.
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders })
+  }
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 })
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 
   try {
     const { test_report_id } = await req.json()
     if (!test_report_id) {
-      return new Response(JSON.stringify({ error: 'test_report_id is required' }), { status: 400 })
+      return new Response(JSON.stringify({ error: 'test_report_id is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     const authHeader = req.headers.get('Authorization') ?? ''
@@ -37,10 +49,10 @@ Deno.serve(async (req) => {
       .eq('id', test_report_id)
       .single()
     if (reportError || !report) {
-      return new Response(JSON.stringify({ error: reportError?.message ?? 'Test report not found' }), { status: 404 })
+      return new Response(JSON.stringify({ error: reportError?.message ?? 'Test report not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
     if (report.status !== 'completed') {
-      return new Response(JSON.stringify({ error: 'Test report must be completed before a certificate can be issued' }), { status: 400 })
+      return new Response(JSON.stringify({ error: 'Test report must be completed before a certificate can be issued' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     const { data: results, error: resultsError } = await supabase
@@ -48,7 +60,7 @@ Deno.serve(async (req) => {
       .select('*')
       .eq('test_report_id', test_report_id)
     if (resultsError) {
-      return new Response(JSON.stringify({ error: resultsError.message }), { status: 500 })
+      return new Response(JSON.stringify({ error: resultsError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     const pdfDoc = await PDFDocument.create()
@@ -91,7 +103,7 @@ Deno.serve(async (req) => {
       upsert: true,
     })
     if (uploadError) {
-      return new Response(JSON.stringify({ error: uploadError.message }), { status: 500 })
+      return new Response(JSON.stringify({ error: uploadError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     const { data: certificate, error: certError } = await supabase
@@ -100,13 +112,13 @@ Deno.serve(async (req) => {
       .select()
       .single()
     if (certError) {
-      return new Response(JSON.stringify({ error: certError.message }), { status: 500 })
+      return new Response(JSON.stringify({ error: certError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     return new Response(JSON.stringify({ storage_path: storagePath, certificate_number: certificate.certificate_number }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }), { status: 500 })
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })

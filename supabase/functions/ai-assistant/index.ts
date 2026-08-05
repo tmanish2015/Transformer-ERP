@@ -23,6 +23,16 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
+// Edge functions run on a different origin (supabase.co) than the frontend (the app's
+// own domain), so every response — including the preflight OPTIONS request the browser
+// sends automatically before a cross-origin POST with a JSON body — needs CORS headers,
+// or the browser blocks the request before it ever reaches this handler.
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -319,8 +329,11 @@ const INTENT_LABEL: Record<Intent, string> = {
 // ---------------------------------------------------------------------------
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders })
+  }
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 
   try {
@@ -331,19 +344,19 @@ Deno.serve(async (req) => {
 
     const { data: userData, error: userError } = await supabase.auth.getUser()
     if (userError || !userData.user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } })
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     const { data: allowed, error: permError } = await supabase.rpc('has_permission', { perm_key: 'ai.view' })
     if (permError || !allowed) {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { 'Content-Type': 'application/json' } })
+      return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     const body = await req.json()
     const { question, session_id, option } = body as { question?: string; session_id?: string | null; option?: string }
 
     if (!question || typeof question !== 'string' || question.trim().length === 0) {
-      return new Response(JSON.stringify({ error: 'question is required' }), { status: 400, headers: { 'Content-Type': 'application/json' } })
+      return new Response(JSON.stringify({ error: 'question is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     const intent = classifyIntent(question.trim())
@@ -371,7 +384,7 @@ Deno.serve(async (req) => {
         .select('id')
         .single()
       if (sessionError) {
-        return new Response(JSON.stringify({ error: sessionError.message }), { status: 500, headers: { 'Content-Type': 'application/json' } })
+        return new Response(JSON.stringify({ error: sessionError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       }
       sessionId = newSession.id
     }
@@ -381,7 +394,7 @@ Deno.serve(async (req) => {
       { session_id: sessionId, role: 'assistant', content: answer, intent, chart: chart ?? null },
     ])
     if (msgError) {
-      return new Response(JSON.stringify({ error: msgError.message }), { status: 500, headers: { 'Content-Type': 'application/json' } })
+      return new Response(JSON.stringify({ error: msgError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     const response: AssistantResponse = {
@@ -391,8 +404,8 @@ Deno.serve(async (req) => {
       data,
       chart,
     }
-    return new Response(JSON.stringify(response), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify(response), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   } catch (err) {
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }), { status: 500, headers: { 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })

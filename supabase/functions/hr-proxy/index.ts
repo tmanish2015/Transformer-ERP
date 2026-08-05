@@ -15,11 +15,24 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 const HR_SERVICE_URL = Deno.env.get('HR_SERVICE_URL')!
 const HR_SERVICE_API_KEY = Deno.env.get('HR_SERVICE_API_KEY')!
 
+// Edge functions run on a different origin (supabase.co) than the frontend, so every
+// response — including the preflight OPTIONS request the browser sends automatically
+// before a cross-origin request with custom headers/JSON body — needs CORS headers.
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+}
+
 function requiredPermission(method: string): 'hr.view' | 'hr.manage' {
   return method === 'GET' ? 'hr.view' : 'hr.manage'
 }
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders })
+  }
+
   const authHeader = req.headers.get('Authorization') ?? ''
   const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
     global: { headers: { Authorization: authHeader } },
@@ -28,7 +41,7 @@ Deno.serve(async (req) => {
   const permission = requiredPermission(req.method)
   const { data: allowed, error: permError } = await supabase.rpc('has_permission', { perm_key: permission })
   if (permError || !allowed) {
-    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 
   const url = new URL(req.url)
@@ -43,5 +56,5 @@ Deno.serve(async (req) => {
   })
 
   const body = await upstreamResponse.text()
-  return new Response(body, { status: upstreamResponse.status, headers: { 'Content-Type': 'application/json' } })
+  return new Response(body, { status: upstreamResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 })
