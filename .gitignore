@@ -1,0 +1,12 @@
+node_modules/
+_e2e/node_modules/
+
+# Scratch/diagnostic scripts and session-extraction artifacts — never commit auth
+# tokens or session dumps to the repo.
+frontend/_*
+frontend/build_output.txt
+frontend/build_result.txt
+frontend/check_build.mjs
+frontend/run_build.bat
+frontend/testout.txt
+frontend/TODO.md

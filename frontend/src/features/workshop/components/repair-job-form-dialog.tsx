@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
@@ -11,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { repairJobSchema, type RepairJobFormInput, type RepairJobFormValues } from '@/features/workshop/schemas/workshop-schemas'
 import { useCreateRepairJob } from '@/features/workshop/hooks/use-repair-jobs'
 import { useCustomers } from '@/features/sales/hooks/use-customers'
+import { useTransformers } from '@/features/transformer/hooks/use-transformers'
 
 interface RepairJobFormDialogProps {
   open: boolean
@@ -19,13 +21,16 @@ interface RepairJobFormDialogProps {
 
 export function RepairJobFormDialog({ open, onOpenChange }: RepairJobFormDialogProps) {
   const { data: customers } = useCustomers()
+  const { data: transformers } = useTransformers()
   const createJob = useCreateRepairJob()
+  const [selectedTransformerId, setSelectedTransformerId] = useState('')
 
   const {
     register,
     control,
     handleSubmit,
     reset,
+    setValue,
     watch,
     formState: { errors },
   } = useForm<RepairJobFormInput, unknown, RepairJobFormValues>({
@@ -38,17 +43,33 @@ export function RepairJobFormDialog({ open, onOpenChange }: RepairJobFormDialogP
       complaint: '',
       pickup_required: false,
       pickup_address: '',
-      pickup_requested_date: '',
+pickup_requested_date: '',
       notes: '',
     },
   })
 
   const pickupRequired = watch('pickup_required')
 
+  const handleTransformerChange = (transformerId: string | null) => {
+    const id = transformerId ?? ''
+    setSelectedTransformerId(id)
+    const transformer = transformers?.find((t) => t.id === id)
+    if (transformer) {
+      setValue('customer_id', transformer.customer_id, { shouldValidate: true })
+      setValue('transformer_make', transformer.make ?? '')
+      setValue('transformer_model', transformer.model ?? '')
+      setValue('transformer_serial_no', transformer.serial_no ?? '')
+      if (transformer.capacity_kva != null) {
+        setValue('transformer_capacity_kva', transformer.capacity_kva, { shouldValidate: true })
+      }
+    }
+  }
+
   const onSubmit = (values: RepairJobFormValues) => {
     createJob.mutate(values, {
       onSuccess: () => {
         onOpenChange(false)
+        setSelectedTransformerId('')
         reset()
       },
     })
@@ -63,6 +84,25 @@ export function RepairJobFormDialog({ open, onOpenChange }: RepairJobFormDialogP
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-1.5">
+            <Label>Transformer (optional)</Label>
+            <Select value={selectedTransformerId} onValueChange={handleTransformerChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a transformer to auto-fill" />
+              </SelectTrigger>
+              <SelectContent>
+                {transformers?.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.registration_no}
+                    {t.make ? ` — ${t.make}` : ''}
+                    {t.model ? ` ${t.model}` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Selecting a transformer auto-fills the customer and transformer details below.</p>
+          </div>
+
+          <div className="space-y-1.5">
             <Label>Customer</Label>
             <Controller
               control={control}
@@ -70,7 +110,7 @@ export function RepairJobFormDialog({ open, onOpenChange }: RepairJobFormDialogP
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select customer" />
+                    <SelectValue>{customers?.find((c) => c.id === field.value)?.name ?? 'Select customer'}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {customers?.map((c) => (

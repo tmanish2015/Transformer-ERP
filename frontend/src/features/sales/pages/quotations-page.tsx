@@ -43,7 +43,8 @@ export function QuotationsPage() {
         </button>
       ),
     },
-    { id: 'customer', header: 'Customer', cell: ({ row }) => row.original.customer.name },
+{ id: 'customer', header: 'Customer', cell: ({ row }) => row.original.customer.name },
+    { id: 'gstin', header: 'GSTIN', cell: ({ row }) => row.original.customer.gstin ?? <span className="text-muted-foreground">—</span> },
     {
       id: 'quotation_date',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Date" />,

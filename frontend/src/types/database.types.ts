@@ -8,12 +8,25 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
-      companies: {
+companies: {
         Row: {
           id: string
           name: string
           industry_type: string
           status: string
+          logo_url: string | null
+          company_address: string | null
+          gstin: string | null
+          pan_number: string | null
+          terms_conditions: string | null
+          authorized_signatory: string | null
+          bank_name: string | null
+          account_number: string | null
+          ifsc_code: string | null
+          branch_name: string | null
+          company_email: string | null
+          company_phone: string | null
+          website: string | null
           created_at: string
           updated_at: string
         }
@@ -22,6 +35,19 @@ export type Database = {
           name: string
           industry_type: string
           status?: string
+          logo_url?: string | null
+          company_address?: string | null
+          gstin?: string | null
+          pan_number?: string | null
+          terms_conditions?: string | null
+          authorized_signatory?: string | null
+          bank_name?: string | null
+          account_number?: string | null
+          ifsc_code?: string | null
+          branch_name?: string | null
+          company_email?: string | null
+          company_phone?: string | null
+          website?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -663,9 +689,12 @@ export type Database = {
           contact_person: string | null
           email: string | null
           phone: string | null
-          billing_address: string | null
+billing_address: string | null
           shipping_address: string | null
           gstin: string | null
+          pan_number: string | null
+          state: string | null
+          state_code: string | null
           credit_limit: number
           credit_days: number
           status: string
@@ -1198,7 +1227,7 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['rental_bookings']['Row']>
         Relationships: [
           { foreignKeyName: 'rental_bookings_customer_id_fkey'; columns: ['customer_id']; referencedRelation: 'customers'; referencedColumns: ['id']; isOneToOne: false },
-          { foreignKeyName: 'rental_bookings_rental_asset_id_fkey'; columns: ['rental_asset_id']; referencedRelation: 'rental_assets'; referencedColumns: ['id']; isOneToOne: false },
+{ foreignKeyName: 'rental_bookings_rental_asset_id_fkey'; columns: ['rental_asset_id']; referencedRelation: 'rental_assets'; referencedColumns: ['id']; isOneToOne: false },
           { foreignKeyName: 'rental_bookings_rental_quotation_id_fkey'; columns: ['rental_quotation_id']; referencedRelation: 'rental_quotations'; referencedColumns: ['id']; isOneToOne: false },
         ]
       }
@@ -1207,6 +1236,65 @@ export type Database = {
         Insert: Partial<Database['public']['Tables']['vehicles']['Row']> & { registration_no: string }
         Update: Partial<Database['public']['Tables']['vehicles']['Row']>
         Relationships: []
+      }
+      transformers: {
+        Row: {
+          id: string
+          company_id: string
+          customer_id: string
+          registration_no: string
+          serial_no: string | null
+          make: string | null
+          model: string | null
+          capacity_kva: number | null
+          voltage_ratio: string | null
+          phase: string | null
+          cooling_type: string | null
+          manufacturer: string | null
+          manufacturing_year: number | null
+          installation_date: string | null
+          location: string | null
+          current_status: string
+          warranty_expiry: string | null
+          remarks: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['transformers']['Row']> & { registration_no: string; customer_id: string }
+        Update: Partial<Database['public']['Tables']['transformers']['Row']>
+        Relationships: [{ foreignKeyName: 'transformers_customer_id_fkey'; columns: ['customer_id']; referencedRelation: 'customers'; referencedColumns: ['id']; isOneToOne: false }]
+      }
+ai_chat_sessions: {
+        Row: {
+          id: string
+          company_id: string
+          user_id: string
+          title: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['ai_chat_sessions']['Row']> & { user_id: string }
+        Update: Partial<Database['public']['Tables']['ai_chat_sessions']['Row']>
+        Relationships: [
+          { foreignKeyName: 'ai_chat_sessions_company_id_fkey'; columns: ['company_id']; referencedRelation: 'companies'; referencedColumns: ['id']; isOneToOne: false },
+          { foreignKeyName: 'ai_chat_sessions_user_id_fkey'; columns: ['user_id']; referencedRelation: 'profiles'; referencedColumns: ['id']; isOneToOne: false },
+        ]
+      }
+      ai_chat_messages: {
+        Row: {
+          id: string
+          session_id: string
+          role: string
+          content: string
+          intent: string | null
+          chart: Json | null
+          created_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['ai_chat_messages']['Row']> & { session_id: string; role: string; content: string }
+        Update: Partial<Database['public']['Tables']['ai_chat_messages']['Row']>
+        Relationships: [
+          { foreignKeyName: 'ai_chat_messages_session_id_fkey'; columns: ['session_id']; referencedRelation: 'ai_chat_sessions'; referencedColumns: ['id']; isOneToOne: false },
+        ]
       }
       drivers: {
         Row: { id: string; company_id: string; name: string; license_no: string | null; is_active: boolean; created_at: string }

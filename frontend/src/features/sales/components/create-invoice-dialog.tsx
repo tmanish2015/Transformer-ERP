@@ -24,6 +24,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
     control,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<SalesInvoiceFormInput, unknown, SalesInvoiceFormValues>({
     resolver: zodResolver(salesInvoiceSchema),
@@ -34,6 +35,9 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
       notes: '',
     },
   })
+
+  const salesOrderId = watch('sales_order_id')
+  const selectedSO = invoiceableSOs?.find((s) => s.id === salesOrderId)
 
   const onSubmit = (values: SalesInvoiceFormValues) => {
     createInvoice.mutate(values, {
@@ -60,7 +64,9 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select sales order" />
+                    <SelectValue placeholder="Select sales order">
+                      {selectedSO ? `${selectedSO.so_number} — ${selectedSO.customer.name} (₹${selectedSO.total.toLocaleString('en-IN')})` : ''}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {invoiceableSOs?.map((so) => (

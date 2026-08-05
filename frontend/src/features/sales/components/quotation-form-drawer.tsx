@@ -92,7 +92,7 @@ export function QuotationFormDrawer({ open, onOpenChange }: QuotationFormDrawerP
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={(v) => field.onChange(v ?? '')}>
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select customer" />
+                        <SelectValue placeholder="Select customer">{customers?.find((c) => c.id === field.value)?.name ?? ''}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {customers?.map((c) => (
@@ -168,7 +168,7 @@ export function QuotationFormDrawer({ open, onOpenChange }: QuotationFormDrawerP
                                   }}
                                 >
                                   <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select product" />
+                                    <SelectValue placeholder="Select product">{products?.find((p) => p.id === productField.value)?.name ?? ''}</SelectValue>
                                   </SelectTrigger>
                                   <SelectContent>
                                     {products?.map((p) => (

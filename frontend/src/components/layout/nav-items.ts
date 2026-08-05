@@ -1,4 +1,4 @@
-import { Boxes, CalendarClock, Factory, FlaskConical, LayoutDashboard, Landmark, Settings, ShoppingBag, Target, Truck, TrendingUp, UserCog, Users, UserRound, Wrench, type LucideIcon } from 'lucide-react'
+import { Boxes, CalendarClock, Factory, FlaskConical, LayoutDashboard, Landmark, Settings, ShoppingBag, Sparkles, Target, Truck, TrendingUp, UserCog, Users, UserRound, Wrench, type LucideIcon } from 'lucide-react'
 
 export interface NavLink {
   type: 'link'
@@ -108,8 +108,9 @@ export const navSections: NavSection[] = [
           { label: 'Reports', to: '/manufacturing/reports' },
         ],
       },
-      { type: 'link', label: 'Testing Lab', to: '/testing-lab/reports', icon: FlaskConical, permission: 'testing-lab.view' },
+{ type: 'link', label: 'Testing Lab', to: '/testing-lab/reports', icon: FlaskConical, permission: 'testing-lab.view' },
       { type: 'link', label: 'Maintenance', to: '/maintenance/schedules', icon: CalendarClock, permission: 'maintenance.view' },
+      { type: 'link', label: 'AI Assistant', to: '/ai-assistant', icon: Sparkles, permission: 'ai.view' },
     ],
   },
   {
@@ -123,6 +124,7 @@ export const navSections: NavSection[] = [
         items: [
           { label: 'Dashboard', to: '/inventory' },
           { label: 'Products', to: '/inventory/products' },
+          { label: 'Transformer Master', to: '/transformers' },
           { label: 'Categories', to: '/inventory/categories' },
           { label: 'Brands', to: '/inventory/brands' },
           { label: 'Units', to: '/inventory/units' },

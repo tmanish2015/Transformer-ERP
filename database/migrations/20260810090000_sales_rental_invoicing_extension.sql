@@ -26,16 +26,21 @@ set search_path = public
 as $$
 declare
   agr record;
+  ra record;
   ret record;
   rental_days numeric;
   damage_row record;
 begin
   select * into agr from public.rental_agreements where id = p_agreement_id;
+  if not found then
+    return;
+  end if;
+  select * into ra from public.rental_assets where id = agr.rental_asset_id;
   rental_days := (agr.end_date - agr.start_date) + 1;
 
   description := 'Rental charge (' || rental_days || ' days)';
   quantity := rental_days;
-  unit_price := agr.daily_rental_rate;
+  unit_price := ra.daily_rental_rate;
   gst_rate := 18;
   return next;
 

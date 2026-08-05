@@ -28,6 +28,9 @@ export async function createCustomer(values: CustomerFormValues) {
       billing_address: values.billing_address || null,
       shipping_address: values.shipping_address || null,
       gstin: values.gstin || null,
+      pan_number: values.pan_number || null,
+      state: values.state || null,
+      state_code: values.state_code || null,
       credit_limit: values.credit_limit,
       credit_days: values.credit_days,
       status: values.status,
@@ -57,8 +60,8 @@ export async function deleteAllCustomers() {
 
 export async function fetchQuotations(): Promise<QuotationWithRelations[]> {
   const { data, error } = await supabase
-    .from('quotations')
-    .select('*, customer:customers(id,name,billing_address,shipping_address,gstin,phone,email)')
+.from('quotations')
+    .select('*, customer:customers(id,name,billing_address,shipping_address,gstin,pan_number,state,state_code,phone,email)')
     .order('quotation_date', { ascending: false })
   if (error) throw error
   return data
@@ -158,7 +161,7 @@ export async function convertQuotationToSalesOrder(quotationId: string, warehous
 export async function fetchSalesOrders(): Promise<SalesOrderWithRelations[]> {
   const { data, error } = await supabase
     .from('sales_orders')
-    .select('*, customer:customers(id,name), warehouse:warehouses(id,name)')
+    .select('*, customer:customers(id,name,billing_address,shipping_address,gstin,pan_number,state,state_code,phone,email), warehouse:warehouses(id,name)')
     .order('order_date', { ascending: false })
   if (error) throw error
   return data
@@ -218,7 +221,7 @@ export async function deleteSalesOrder(id: string) {
 export async function fetchDeliverableSalesOrders(): Promise<SalesOrderWithRelations[]> {
   const { data, error } = await supabase
     .from('sales_orders')
-    .select('*, customer:customers(id,name), warehouse:warehouses(id,name)')
+    .select('*, customer:customers(id,name,billing_address,shipping_address,gstin,pan_number,state,state_code,phone,email), warehouse:warehouses(id,name)')
     .in('status', ['confirmed', 'partially_delivered'])
     .order('order_date', { ascending: false })
   if (error) throw error
@@ -228,7 +231,9 @@ export async function fetchDeliverableSalesOrders(): Promise<SalesOrderWithRelat
 export async function fetchDeliveryChallans(): Promise<DeliveryChallanWithRelations[]> {
   const { data, error } = await supabase
     .from('delivery_challans')
-    .select('*, sales_order:sales_orders(id,so_number,customer:customers(id,name)), warehouse:warehouses(id,name)')
+    .select(
+      '*, sales_order:sales_orders(id,so_number,customer:customers(id,name,billing_address,shipping_address,gstin,pan_number,state,state_code,phone,email)), warehouse:warehouses(id,name)',
+    )
     .order('delivery_date', { ascending: false })
   if (error) throw error
   return data
@@ -277,9 +282,9 @@ export async function fetchInvoiceableSalesOrders(): Promise<SalesOrderWithRelat
 
   const excludeIds = invoicedSoIds.map((i) => i.sales_order_id).filter(Boolean) as string[]
 
-  let query = supabase
+let query = supabase
     .from('sales_orders')
-    .select('*, customer:customers(id,name), warehouse:warehouses(id,name)')
+    .select('*, customer:customers(id,name,billing_address,shipping_address,gstin,pan_number,state,state_code,phone,email), warehouse:warehouses(id,name)')
     .in('status', ['delivered', 'partially_delivered', 'confirmed'])
     .order('order_date', { ascending: false })
 
@@ -294,8 +299,8 @@ export async function fetchInvoiceableSalesOrders(): Promise<SalesOrderWithRelat
 
 export async function fetchSalesInvoices(): Promise<SalesInvoiceWithRelations[]> {
   const { data, error } = await supabase
-    .from('sales_invoices')
-    .select('*, customer:customers(id,name,billing_address,shipping_address,gstin,phone,email), sales_order:sales_orders(id,so_number)')
+.from('sales_invoices')
+    .select('*, customer:customers(id,name,billing_address,shipping_address,gstin,pan_number,state,state_code,phone,email), sales_order:sales_orders(id,so_number)')
     .order('invoice_date', { ascending: false })
   if (error) throw error
   return data

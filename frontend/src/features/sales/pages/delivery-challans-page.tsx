@@ -37,7 +37,8 @@ export function DeliveryChallansPage() {
   const columns: ColumnDef<DeliveryChallanWithRelations>[] = [
     { id: 'dc_number', header: ({ column }) => <DataTableColumnHeader column={column} title="DC Number" />, accessorFn: (row) => row.dc_number },
     { id: 'so_number', header: 'Sales Order', cell: ({ row }) => row.original.sales_order.so_number },
-    { id: 'customer', header: 'Customer', cell: ({ row }) => row.original.sales_order.customer.name },
+{ id: 'customer', header: 'Customer', cell: ({ row }) => row.original.sales_order.customer.name },
+    { id: 'gstin', header: 'GSTIN', cell: ({ row }) => row.original.sales_order.customer.gstin ?? <span className="text-muted-foreground">—</span> },
     { id: 'warehouse', header: 'Warehouse', cell: ({ row }) => row.original.warehouse.name },
     {
       id: 'delivery_date',

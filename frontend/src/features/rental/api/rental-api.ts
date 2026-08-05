@@ -407,8 +407,16 @@ export async function fetchInvoiceForRentalAgreement(agreementId: string) {
 }
 
 export async function createRentalInvoice(agreement: RentalAgreementWithRelations) {
-  const { data: lines, error: calcError } = await supabase.rpc('calculate_rental_invoice', { p_agreement_id: agreement.id })
-  if (calcError) throw calcError
+  // Build the invoice line items from the calculate_rental_invoice RPC. This is the
+  // single source of truth for the rental line arithmetic (base rental, operator/fuel
+  // charges, late-return charge, and customer-chargeable damage items) — the frontend
+  // does not duplicate it. The RPC looks up the asset's daily rate via rental_asset_id.
+  const { data: lines, error: rpcError } = await supabase.rpc('calculate_rental_invoice', {
+    p_agreement_id: agreement.id,
+  })
+  if (rpcError) throw rpcError
+
+  const lineItems = (lines ?? []) as { description: string; quantity: number; unit_price: number; gst_rate: number }[]
 
   const { data: invoice, error } = await supabase
     .from('sales_invoices')
@@ -417,8 +425,8 @@ export async function createRentalInvoice(agreement: RentalAgreementWithRelation
     .single()
   if (error) throw error
 
-  const { error: itemsError } = await supabase.from('sales_invoice_items').insert(
-    lines.map((line) => ({
+const { error: itemsError } = await supabase.from('sales_invoice_items').insert(
+    lineItems.map((line) => ({
       sales_invoice_id: invoice.id,
       description: line.description,
       quantity: line.quantity,

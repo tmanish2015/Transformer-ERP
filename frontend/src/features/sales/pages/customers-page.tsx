@@ -29,9 +29,12 @@ const CUSTOMER_EXPORT_COLUMNS: ExcelColumn[] = [
   { header: 'Contact Person', key: 'contact_person' },
   { header: 'Email', key: 'email' },
   { header: 'Phone', key: 'phone' },
+  { header: 'GSTIN', key: 'gstin' },
+  { header: 'PAN Number', key: 'pan_number' },
+  { header: 'State', key: 'state' },
+  { header: 'State Code', key: 'state_code' },
   { header: 'Billing Address', key: 'billing_address' },
   { header: 'Shipping Address', key: 'shipping_address' },
-  { header: 'GSTIN', key: 'gstin' },
   { header: 'Credit Limit', key: 'credit_limit' },
   { header: 'Credit Days', key: 'credit_days' },
   { header: 'Status', key: 'status' },
@@ -50,7 +53,7 @@ function CustomerFormDialog({ open, onOpenChange, customer }: { open: boolean; o
     formState: { errors },
   } = useForm<CustomerFormInput, unknown, CustomerFormValues>({
     resolver: zodResolver(customerSchema),
-    values: {
+values: {
       name: customer?.name ?? '',
       contact_person: customer?.contact_person ?? '',
       email: customer?.email ?? '',
@@ -58,6 +61,9 @@ function CustomerFormDialog({ open, onOpenChange, customer }: { open: boolean; o
       billing_address: customer?.billing_address ?? '',
       shipping_address: customer?.shipping_address ?? '',
       gstin: customer?.gstin ?? '',
+      pan_number: customer?.pan_number ?? '',
+      state: customer?.state ?? '',
+      state_code: customer?.state_code ?? '',
       credit_limit: customer?.credit_limit ?? 0,
       credit_days: customer?.credit_days ?? 0,
       status: (customer?.status as CustomerFormValues['status']) ?? 'lead',
@@ -107,7 +113,23 @@ function CustomerFormDialog({ open, onOpenChange, customer }: { open: boolean; o
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="gstin">GSTIN</Label>
-              <Input id="gstin" {...register('gstin')} />
+              <Input id="gstin" placeholder="22ABCDE1234F1Z5" {...register('gstin')} />
+              {errors.gstin && <p className="text-xs text-destructive">{errors.gstin.message}</p>}
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="pan_number">PAN Number</Label>
+              <Input id="pan_number" placeholder="ABCDE1234F" {...register('pan_number')} />
+              {errors.pan_number && <p className="text-xs text-destructive">{errors.pan_number.message}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="state">State</Label>
+              <Input id="state" placeholder="Maharashtra" {...register('state')} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="state_code">State Code</Label>
+              <Input id="state_code" placeholder="27" {...register('state_code')} />
             </div>
           </div>
           <div className="space-y-1.5">
@@ -180,10 +202,13 @@ export function CustomersPage() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null)
 
-  const columns: ColumnDef<Customer>[] = [
-    { accessorKey: 'customer_code', header: ({ column }) => <DataTableColumnHeader column={column} title="Code" /> },
-    { accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title="Name" /> },
+const columns: ColumnDef<Customer>[] = [
+    { accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title="Customer Name" /> },
+    { accessorKey: 'gstin', header: 'GSTIN', cell: ({ row }) => row.original.gstin || <span className="text-muted-foreground">—</span> },
+    { accessorKey: 'pan_number', header: 'PAN', cell: ({ row }) => row.original.pan_number || <span className="text-muted-foreground">—</span> },
+    { accessorKey: 'state', header: 'State', cell: ({ row }) => row.original.state || <span className="text-muted-foreground">—</span> },
     { accessorKey: 'phone', header: 'Phone', cell: ({ row }) => row.original.phone || <span className="text-muted-foreground">—</span> },
+    { accessorKey: 'email', header: 'Email', cell: ({ row }) => row.original.email || <span className="text-muted-foreground">—</span> },
     {
       id: 'credit_limit',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Credit Limit" />,
@@ -239,7 +264,7 @@ export function CustomersPage() {
         const rawStatus = (r.status || 'lead').trim().toLowerCase() as CustomerStatus
         if (r.status && !validStatuses.includes(rawStatus)) throw new Error(`Status "${r.status}" is invalid (expected one of ${validStatuses.join(', ')})`)
 
-        await createCustomer.mutateAsync({
+await createCustomer.mutateAsync({
           name: r.name,
           contact_person: r.contact_person || '',
           email: r.email || '',
@@ -247,6 +272,9 @@ export function CustomersPage() {
           billing_address: r.billing_address || '',
           shipping_address: r.shipping_address || '',
           gstin: r.gstin || '',
+          pan_number: r.pan_number || '',
+          state: r.state || '',
+          state_code: r.state_code || '',
           credit_limit: Number(r.credit_limit) || 0,
           credit_days: Number(r.credit_days) || 0,
           status: rawStatus,
@@ -272,15 +300,18 @@ export function CustomersPage() {
                 entityLabel="Customers"
                 exportFilename="customers.xlsx"
                 exportColumns={CUSTOMER_EXPORT_COLUMNS}
-                getExportRows={() =>
+getExportRows={() =>
                   (data ?? []).map((c) => ({
                     name: c.name,
                     contact_person: c.contact_person ?? '',
                     email: c.email ?? '',
                     phone: c.phone ?? '',
+                    gstin: c.gstin ?? '',
+                    pan_number: c.pan_number ?? '',
+                    state: c.state ?? '',
+                    state_code: c.state_code ?? '',
                     billing_address: c.billing_address ?? '',
                     shipping_address: c.shipping_address ?? '',
-                    gstin: c.gstin ?? '',
                     credit_limit: c.credit_limit,
                     credit_days: c.credit_days,
                     status: c.status,

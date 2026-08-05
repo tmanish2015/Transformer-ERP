@@ -106,7 +106,12 @@ export function DeliverGoodsDialog({ open, onOpenChange, initialSalesOrderId }: 
                     }}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select sales order" />
+                      <SelectValue placeholder="Select sales order">
+                        {(() => {
+                          const so = deliverableSOs?.find((s) => s.id === field.value)
+                          return so ? `${so.so_number} — ${so.customer.name}` : ''
+                        })()}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {deliverableSOs?.map((so) => (

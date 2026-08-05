@@ -69,8 +69,19 @@ export interface NamedRef {
   name: string
 }
 
+export interface CustomerWithTax extends NamedRef {
+  billing_address: string | null
+  shipping_address: string | null
+  gstin: string | null
+  pan_number: string | null
+  state: string | null
+  state_code: string | null
+  phone: string | null
+  email: string | null
+}
+
 export interface QuotationWithRelations extends Quotation {
-  customer: NamedRef & { billing_address: string | null; shipping_address: string | null; gstin: string | null; phone: string | null; email: string | null }
+  customer: CustomerWithTax
 }
 
 export interface QuotationItemWithProduct extends QuotationItem {
@@ -78,7 +89,7 @@ export interface QuotationItemWithProduct extends QuotationItem {
 }
 
 export interface SalesOrderWithRelations extends SalesOrder {
-  customer: NamedRef
+  customer: CustomerWithTax
   warehouse: NamedRef
 }
 
@@ -87,12 +98,12 @@ export interface SalesOrderItemWithProduct extends SalesOrderItem {
 }
 
 export interface DeliveryChallanWithRelations extends DeliveryChallan {
-  sales_order: { id: string; so_number: string; customer: NamedRef }
+  sales_order: { id: string; so_number: string; customer: CustomerWithTax }
   warehouse: NamedRef
 }
 
 export interface SalesInvoiceWithRelations extends SalesInvoice {
-  customer: NamedRef & { billing_address: string | null; shipping_address: string | null; gstin: string | null; phone: string | null; email: string | null }
+  customer: CustomerWithTax
   sales_order: { id: string; so_number: string } | null
 }
 

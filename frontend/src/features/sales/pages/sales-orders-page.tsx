@@ -43,7 +43,8 @@ export function SalesOrdersPage() {
         </button>
       ),
     },
-    { id: 'customer', header: 'Customer', cell: ({ row }) => row.original.customer.name },
+{ id: 'customer', header: 'Customer', cell: ({ row }) => row.original.customer.name },
+    { id: 'gstin', header: 'GSTIN', cell: ({ row }) => row.original.customer.gstin ?? <span className="text-muted-foreground">—</span> },
     { id: 'warehouse', header: 'Warehouse', cell: ({ row }) => row.original.warehouse.name },
     {
       id: 'order_date',

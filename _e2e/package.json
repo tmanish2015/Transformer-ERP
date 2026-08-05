@@ -1,0 +1,12 @@
+{
+  "name": "transformer-erp-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Phase 2 live functional verification harness (drives installed Chrome via puppeteer-core)",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.3",
+    "puppeteer-core": "^24.0.0"
+  }
+}
+

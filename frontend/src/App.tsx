@@ -69,6 +69,8 @@ const RentalAgreementsPage = lazy(() => import('@/features/rental/pages/rental-a
 const RentalAgreementDetailPage = lazy(() => import('@/features/rental/pages/rental-agreement-detail-page').then((m) => ({ default: m.RentalAgreementDetailPage })))
 const VehiclesPage = lazy(() => import('@/features/logistics/pages/vehicles-page').then((m) => ({ default: m.VehiclesPage })))
 const DriversPage = lazy(() => import('@/features/logistics/pages/drivers-page').then((m) => ({ default: m.DriversPage })))
+const TransformerPage = lazy(() => import('@/features/transformer/pages/transformer-page'))
+const AiAssistantPage = lazy(() => import('@/features/ai/pages/ai-assistant-page').then((m) => ({ default: m.AiAssistantPage })))
 const RentalAvailabilityPage = lazy(() => import('@/features/rental/pages/rental-availability-page').then((m) => ({ default: m.RentalAvailabilityPage })))
 const RentalReportsPage = lazy(() => import('@/features/rental/pages/rental-reports-page').then((m) => ({ default: m.RentalReportsPage })))
 const MaintenanceSchedulesPage = lazy(() => import('@/features/maintenance/pages/maintenance-schedules-page').then((m) => ({ default: m.MaintenanceSchedulesPage })))
@@ -555,10 +557,26 @@ function App() {
                             }
                           />
                           <Route
+  path="transformers"
+  element={
+    <RequirePermission permission="inventory.view">
+      <TransformerPage />
+    </RequirePermission>
+  }
+/>
+<Route
                             path="logistics/drivers"
                             element={
                               <RequirePermission permission="logistics.view">
                                 <DriversPage />
+                              </RequirePermission>
+                            }
+                          />
+                          <Route
+                            path="ai-assistant"
+                            element={
+                              <RequirePermission permission="ai.view">
+                                <AiAssistantPage />
                               </RequirePermission>
                             }
                           />

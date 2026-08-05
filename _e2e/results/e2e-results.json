@@ -1,0 +1,46 @@
+{
+  "finishedAt": "2026-08-05T18:07:53.209Z",
+  "steps": [
+    {
+      "phase": "gst",
+      "name": "1.1 Customer: GSTIN field exists",
+      "pass": true,
+      "at": "2026-08-05T18:07:25.358Z",
+      "message": "#gstin input present in Add Customer dialog"
+    },
+    {
+      "phase": "gst",
+      "name": "1.2 Customer: created in list",
+      "pass": true,
+      "at": "2026-08-05T18:07:36.538Z",
+      "message": ""
+    },
+    {
+      "phase": "gst",
+      "name": "1.3 Customer: GSTIN saved in DB",
+      "pass": true,
+      "at": "2026-08-05T18:07:37.929Z",
+      "message": "DB gstin=27AABCP1234F1Z5 expected=27AABCP1234F1Z5"
+    },
+    {
+      "phase": "gst",
+      "name": "run",
+      "pass": false,
+      "at": "2026-08-05T18:07:52.992Z",
+      "message": "Waiting failed: 15000ms exceeded"
+    }
+  ],
+  "log": [
+    "[2026-08-05T18:07:05.511Z] [INFO] Browser launched (headless=true)",
+    "[2026-08-05T18:07:14.082Z] [INFO] Signed in. URL: https://transformer-erp.vercel.app/",
+    "[2026-08-05T18:07:16.708Z] [INFO] Warehouse=E2E WH 595845, product=E2E GST Product 236072",
+    "[2026-08-05T18:07:25.358Z] [PASS] gst :: 1.1 Customer: GSTIN field exists ✅ #gstin input present in Add Customer dialog",
+    "[2026-08-05T18:07:34.560Z] [INFO] Screenshot saved: C:\\Projects\\transformer-ai-erp\\_e2e\\screenshots\\gst-1-customer-form-gstin.png",
+    "[2026-08-05T18:07:36.538Z] [PASS] gst :: 1.2 Customer: created in list ✅ ",
+    "[2026-08-05T18:07:37.930Z] [PASS] gst :: 1.3 Customer: GSTIN saved in DB ✅ DB gstin=27AABCP1234F1Z5 expected=27AABCP1234F1Z5",
+    "[2026-08-05T18:07:52.991Z] [ERROR] TimeoutError: Waiting failed: 15000ms exceeded\n    at new WaitTask (file:///C:/Projects/transformer-ai-erp/_e2e/node_modules/puppeteer-core/lib/esm/puppeteer/common/WaitTask.js:46:34)\n    at IsolatedWorld.waitForFunction (file:///C:/Projects/transformer-ai-erp/_e2e/node_modules/puppeteer-core/lib/esm/puppeteer/api/Realm.js:49:26)\n    at CdpFrame.waitForFunction (file:///C:/Projects/transformer-ai-erp/_e2e/node_modules/puppeteer-core/lib/esm/puppeteer/api/Frame.js:580:43)\n    at CdpFrame.<anonymous> (file:///C:/Projects/transformer-ai-erp/_e2e/node_modules/puppeteer-core/lib/esm/puppeteer/util/decorators.js:101:27)\n    at CdpPage.waitForFunction (file:///C:/Projects/transformer-ai-erp/_e2e/node_modules/puppeteer-core/lib/esm/puppeteer/api/Page.js:1447:37)\n    at main (file:///C:/Projects/transformer-ai-erp/_e2e/verify-gst.js:168:18)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)",
+    "[2026-08-05T18:07:52.992Z] [FAIL] gst :: run ❌ Waiting failed: 15000ms exceeded",
+    "[2026-08-05T18:07:53.198Z] [INFO] Screenshot saved: C:\\Projects\\transformer-ai-erp\\_e2e\\screenshots\\gst-failure.png",
+    "[2026-08-05T18:07:53.209Z] [ERROR] Page text on failure: TransFlow AI ERP\n\nMAIN\n\nDashboard\n\nSALES & CRM\n\nSales\nDashboard\nCustomers\nQuotations\nSales Orders\nDelivery Challans\nInvoices\nCRM\n\nOPERATIONS\n\nWorkshop\nRental\nManufacturing\nTesting Lab\nMaintenance\n\nSUPPLY CHAIN\n\nInventory\nPurchases\nLogistics\n\nFINANCE\n\nFinance\n\nADMIN\n\nEmployees\nTeam\nSettings\nTransFlow AI ERP v0.1.0\nCustomers\nMT\nCustomers\n\nManage customer accounts and credit terms.\n\nExport\nImport\nAdd Customer\nCode\n\tName\n\tPhone\tCredit Limit\n\tStatus\tEnabled\t\nCUST-000001\tDemo Customer One\t9876543210\t₹5,00,000\tLead\t\n\t\n\nCUST-000002\tDemo Customer Sales\t9876543321\t₹5,00,000\tLead\t\n\t\n\nCUST-000009\tDiag Cus"
+  ]
+}
