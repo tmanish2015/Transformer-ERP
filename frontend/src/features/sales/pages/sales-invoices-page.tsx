@@ -45,7 +45,8 @@ export function SalesInvoicesPage() {
         </button>
       ),
     },
-    { id: 'customer', header: 'Customer', cell: ({ row }) => row.original.customer.name },
+{ id: 'customer', header: 'Customer', cell: ({ row }) => row.original.customer.name },
+    { id: 'gstin', header: 'GSTIN', cell: ({ row }) => row.original.customer.gstin ?? <span className="text-muted-foreground">—</span> },
     { id: 'so_number', header: 'Sales Order', cell: ({ row }) => row.original.sales_order?.so_number ?? <span className="text-muted-foreground">—</span> },
     {
       id: 'invoice_date',
