@@ -7,7 +7,7 @@ export async function fetchCompany(companyId: string): Promise<Tables<'companies
   return data
 }
 
-export async function updateCompany(companyId: string, updates: { name: string; industry_type: string }) {
+export async function updateCompany(companyId: string, updates: Partial<Tables<'companies'>>) {
   const { error } = await supabase.from('companies').update(updates).eq('id', companyId)
   if (error) throw error
 }

@@ -376,3 +376,40 @@ export async function createSalesPayment(invoiceId: string, values: SalesPayment
   })
   if (error) throw error
 }
+
+// ---------- Customer Ledger ----------
+
+export interface CustomerLedgerInvoice {
+  id: string
+  invoice_number: string
+  invoice_date: string
+  total: number
+}
+
+export interface CustomerLedgerPayment {
+  id: string
+  sales_invoice_id: string
+  payment_date: string
+  amount: number
+}
+
+export async function fetchCustomerLedgerData(customerId: string): Promise<{ invoices: CustomerLedgerInvoice[]; payments: CustomerLedgerPayment[] }> {
+  const { data: invoices, error: invoiceError } = await supabase
+    .from('sales_invoices')
+    .select('id, invoice_number, invoice_date, total')
+    .eq('customer_id', customerId)
+    .order('invoice_date', { ascending: true })
+  if (invoiceError) throw invoiceError
+
+  const invoiceIds = invoices.map((i) => i.id)
+  if (invoiceIds.length === 0) return { invoices, payments: [] }
+
+  const { data: payments, error: paymentError } = await supabase
+    .from('sales_payments')
+    .select('id, sales_invoice_id, payment_date, amount')
+    .in('sales_invoice_id', invoiceIds)
+    .order('payment_date', { ascending: true })
+  if (paymentError) throw paymentError
+
+  return { invoices, payments }
+}

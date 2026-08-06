@@ -52,6 +52,7 @@ export const navSections: NavSection[] = [
           { label: 'Sales Orders', to: '/sales/orders' },
           { label: 'Delivery Challans', to: '/sales/delivery-challans' },
           { label: 'Invoices', to: '/sales/invoices' },
+          { label: 'Customer Ledger', to: '/sales/customer-ledger' },
         ],
       },
       {

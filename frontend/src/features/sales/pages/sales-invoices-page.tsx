@@ -1,23 +1,29 @@
 import { useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { FileText, Plus } from 'lucide-react'
+import { FileText, Loader2, Plus, Share2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { PageHeader } from '@/components/shared/page-header'
 import { EmptyState } from '@/components/shared/empty-state'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { DataTable } from '@/components/data-table/data-table'
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header'
+import { DocumentShareDialog } from '@/components/shared/document-share-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useSalesInvoices } from '@/features/sales/hooks/use-sales-invoices'
+import { fetchSalesInvoiceItems } from '@/features/sales/api/sales-api'
 import { CreateInvoiceDialog } from '@/features/sales/components/create-invoice-dialog'
 import { SalesInvoiceDetailDialog } from '@/features/sales/components/sales-invoice-detail-dialog'
 import { INVOICE_STATUS_LABELS, isInvoiceOverdue, type SalesInvoiceWithRelations } from '@/features/sales/types/sales-types'
+import { useCompanyProfile } from '@/features/settings/hooks/use-company-profile'
+import { generateDocumentPdf, type PdfLineItem } from '@/lib/pdf-generator'
 import { useAuth } from '@/providers/auth-provider'
 
 export function SalesInvoicesPage() {
-  const { hasPermission } = useAuth()
+  const { hasPermission, profile } = useAuth()
   const canManage = hasPermission('sales.manage')
+  const { data: company } = useCompanyProfile()
 
   const { data, isLoading } = useSalesInvoices()
 
@@ -25,6 +31,29 @@ export function SalesInvoicesPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [createOpen, setCreateOpen] = useState(false)
   const [selected, setSelected] = useState<SalesInvoiceWithRelations | null>(null)
+  const [shareTarget, setShareTarget] = useState<{ invoice: SalesInvoiceWithRelations; items: PdfLineItem[] } | null>(null)
+  const [loadingShareId, setLoadingShareId] = useState<string | null>(null)
+
+  const handleShare = async (invoice: SalesInvoiceWithRelations) => {
+    setLoadingShareId(invoice.id)
+    try {
+      const rawItems = await fetchSalesInvoiceItems(invoice.id)
+      const items: PdfLineItem[] = rawItems.map((i) => ({
+        description: i.product?.name ?? i.description ?? 'Item',
+        hsn_code: i.product?.hsn_code ?? null,
+        quantity: i.quantity,
+        unit: i.product?.unit?.short_code ?? null,
+        unit_price: i.unit_price,
+        gst_rate: i.gst_rate,
+        line_total: i.line_total,
+      }))
+      setShareTarget({ invoice, items })
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load invoice items')
+    } finally {
+      setLoadingShareId(null)
+    }
+  }
 
   const filtered = useMemo(() => {
     return (data ?? []).filter((invoice) => {
@@ -68,6 +97,22 @@ export function SalesInvoicesPage() {
         const overdue = isInvoiceOverdue(row.original)
         return <StatusBadge status={overdue ? 'overdue' : row.original.status} label={overdue ? 'Overdue' : INVOICE_STATUS_LABELS[row.original.status as keyof typeof INVOICE_STATUS_LABELS]} />
       },
+    },
+    {
+      id: 'actions',
+      cell: ({ row }) => (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          disabled={loadingShareId === row.original.id}
+          onClick={(e) => {
+            e.stopPropagation()
+            void handleShare(row.original)
+          }}
+        >
+          {loadingShareId === row.original.id ? <Loader2 className="size-4 animate-spin" /> : <Share2 className="size-4" />}
+        </Button>
+      ),
     },
   ]
 
@@ -115,6 +160,45 @@ export function SalesInvoicesPage() {
 
       <CreateInvoiceDialog open={createOpen} onOpenChange={setCreateOpen} />
       <SalesInvoiceDetailDialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)} invoice={selected} />
+
+      {shareTarget && company && profile?.companyId && (
+        <DocumentShareDialog
+          open={Boolean(shareTarget)}
+          onOpenChange={(open) => !open && setShareTarget(null)}
+          docLabel={`Invoice ${shareTarget.invoice.invoice_number}`}
+          docType="invoice"
+          docId={shareTarget.invoice.id}
+          companyId={profile.companyId}
+          partyName={shareTarget.invoice.customer.name}
+          partyEmail={shareTarget.invoice.customer.email}
+          partyPhone={shareTarget.invoice.customer.phone}
+          buildPdf={() =>
+            generateDocumentPdf({
+              docTitle: 'Tax Invoice',
+              docNumber: shareTarget.invoice.invoice_number,
+              docDate: shareTarget.invoice.invoice_date,
+              dueOrValidLabel: 'Due Date',
+              dueOrValidDate: shareTarget.invoice.due_date,
+              company,
+              party: {
+                name: shareTarget.invoice.customer.name,
+                address: shareTarget.invoice.customer.billing_address,
+                gstin: shareTarget.invoice.customer.gstin,
+                pan_number: shareTarget.invoice.customer.pan_number,
+                phone: shareTarget.invoice.customer.phone,
+                email: shareTarget.invoice.customer.email,
+              },
+              partyLabel: 'Bill To',
+              items: shareTarget.items,
+              subtotal: shareTarget.invoice.subtotal,
+              discountTotal: shareTarget.invoice.discount_total,
+              taxTotal: shareTarget.invoice.tax_total,
+              total: shareTarget.invoice.total,
+              notes: shareTarget.invoice.notes,
+            })
+          }
+        />
+      )}
     </div>
   )
 }

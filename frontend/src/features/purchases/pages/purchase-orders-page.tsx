@@ -1,25 +1,31 @@
 import { useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { FileText, MoreHorizontal, Plus, Trash2 } from 'lucide-react'
+import { FileText, Loader2, MoreHorizontal, Plus, Share2, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { PageHeader } from '@/components/shared/page-header'
 import { EmptyState } from '@/components/shared/empty-state'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog'
 import { DataTable } from '@/components/data-table/data-table'
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header'
+import { DocumentShareDialog } from '@/components/shared/document-share-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useDeletePurchaseOrder, usePurchaseOrders } from '@/features/purchases/hooks/use-purchase-orders'
+import { fetchPurchaseOrderItems } from '@/features/purchases/api/purchases-api'
 import { PurchaseOrderFormDrawer } from '@/features/purchases/components/purchase-order-form-drawer'
 import { PurchaseOrderDetailSheet } from '@/features/purchases/components/purchase-order-detail-sheet'
 import { PO_STATUS_LABELS, type PurchaseOrderWithRelations } from '@/features/purchases/types/purchase-types'
+import { useCompanyProfile } from '@/features/settings/hooks/use-company-profile'
+import { generateDocumentPdf, type PdfLineItem } from '@/lib/pdf-generator'
 import { useAuth } from '@/providers/auth-provider'
 
 export function PurchaseOrdersPage() {
-  const { hasPermission } = useAuth()
+  const { hasPermission, profile } = useAuth()
   const canManage = hasPermission('purchases.manage')
+  const { data: company } = useCompanyProfile()
 
   const { data: orders, isLoading } = usePurchaseOrders()
   const deletePO = useDeletePurchaseOrder()
@@ -29,6 +35,29 @@ export function PurchaseOrdersPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [selectedPO, setSelectedPO] = useState<PurchaseOrderWithRelations | null>(null)
   const [deletingPO, setDeletingPO] = useState<PurchaseOrderWithRelations | null>(null)
+  const [shareTarget, setShareTarget] = useState<{ po: PurchaseOrderWithRelations; items: PdfLineItem[] } | null>(null)
+  const [loadingShareId, setLoadingShareId] = useState<string | null>(null)
+
+  const handleShare = async (po: PurchaseOrderWithRelations) => {
+    setLoadingShareId(po.id)
+    try {
+      const rawItems = await fetchPurchaseOrderItems(po.id)
+      const items: PdfLineItem[] = rawItems.map((i) => ({
+        description: i.product.name,
+        hsn_code: i.product.hsn_code,
+        quantity: i.quantity,
+        unit: i.product.unit?.short_code ?? null,
+        unit_price: i.unit_price,
+        gst_rate: i.gst_rate,
+        line_total: i.line_total,
+      }))
+      setShareTarget({ po, items })
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load PO items')
+    } finally {
+      setLoadingShareId(null)
+    }
+  }
 
   const filtered = useMemo(() => {
     return (orders ?? []).filter((po) => (statusFilter === 'all' ? true : po.status === statusFilter))
@@ -75,6 +104,9 @@ export function PurchaseOrdersPage() {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setSelectedPO(row.original)}>
                 <FileText /> View Details
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={loadingShareId === row.original.id} onClick={() => void handleShare(row.original)}>
+                {loadingShareId === row.original.id ? <Loader2 className="animate-spin" /> : <Share2 />} Share
               </DropdownMenuItem>
               {row.original.status === 'draft' && (
                 <DropdownMenuItem variant="destructive" onClick={() => setDeletingPO(row.original)}>
@@ -139,6 +171,37 @@ export function PurchaseOrdersPage() {
         isPending={deletePO.isPending}
         onConfirm={() => deletingPO && deletePO.mutate(deletingPO.id, { onSuccess: () => setDeletingPO(null) })}
       />
+
+      {shareTarget && company && profile?.companyId && (
+        <DocumentShareDialog
+          open={Boolean(shareTarget)}
+          onOpenChange={(open) => !open && setShareTarget(null)}
+          docLabel={`Purchase Order ${shareTarget.po.po_number}`}
+          docType="purchase_order"
+          docId={shareTarget.po.id}
+          companyId={profile.companyId}
+          partyName={shareTarget.po.supplier.name}
+          partyEmail={shareTarget.po.supplier.email}
+          partyPhone={shareTarget.po.supplier.phone}
+          buildPdf={() =>
+            generateDocumentPdf({
+              docTitle: 'Purchase Order',
+              docNumber: shareTarget.po.po_number,
+              docDate: shareTarget.po.order_date,
+              dueOrValidLabel: 'Expected Delivery',
+              dueOrValidDate: shareTarget.po.expected_date,
+              company,
+              party: shareTarget.po.supplier,
+              partyLabel: 'Supplier',
+              items: shareTarget.items,
+              subtotal: shareTarget.po.subtotal,
+              taxTotal: shareTarget.po.tax_total,
+              total: shareTarget.po.total,
+              notes: shareTarget.po.notes,
+            })
+          }
+        />
+      )}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { fetchCompany, updateCompany } from '@/features/settings/api/settings-api'
+import type { Tables } from '@/types/database.types'
 import { useAuth } from '@/providers/auth-provider'
 
 const COMPANY_KEY = 'company-profile'
@@ -18,7 +19,7 @@ export function useUpdateCompanyProfile() {
   const { profile } = useAuth()
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (updates: { name: string; industry_type: string }) => updateCompany(profile!.companyId!, updates),
+    mutationFn: (updates: Partial<Tables<'companies'>>) => updateCompany(profile!.companyId!, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [COMPANY_KEY] })
       toast.success('Company profile saved')

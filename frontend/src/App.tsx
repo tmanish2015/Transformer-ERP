@@ -49,6 +49,7 @@ const QuotationsPage = lazy(() => import('@/features/sales/pages/quotations-page
 const SalesOrdersPage = lazy(() => import('@/features/sales/pages/sales-orders-page').then((m) => ({ default: m.SalesOrdersPage })))
 const DeliveryChallansPage = lazy(() => import('@/features/sales/pages/delivery-challans-page').then((m) => ({ default: m.DeliveryChallansPage })))
 const SalesInvoicesPage = lazy(() => import('@/features/sales/pages/sales-invoices-page').then((m) => ({ default: m.SalesInvoicesPage })))
+const CustomerLedgerPage = lazy(() => import('@/features/sales/pages/customer-ledger-page').then((m) => ({ default: m.CustomerLedgerPage })))
 const WorkshopDashboardPage = lazy(() => import('@/features/workshop/pages/workshop-dashboard-page').then((m) => ({ default: m.WorkshopDashboardPage })))
 const RepairJobsPage = lazy(() => import('@/features/workshop/pages/repair-jobs-page').then((m) => ({ default: m.RepairJobsPage })))
 const RepairJobDetailPage = lazy(() => import('@/features/workshop/pages/repair-job-detail-page').then((m) => ({ default: m.RepairJobDetailPage })))
@@ -336,6 +337,14 @@ function App() {
                             element={
                               <RequirePermission permission="sales.view">
                                 <SalesInvoicesPage />
+                              </RequirePermission>
+                            }
+                          />
+                          <Route
+                            path="sales/customer-ledger"
+                            element={
+                              <RequirePermission permission="sales.view">
+                                <CustomerLedgerPage />
                               </RequirePermission>
                             }
                           />

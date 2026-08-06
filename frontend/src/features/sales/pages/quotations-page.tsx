@@ -1,25 +1,31 @@
 import { useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { FileText, MoreHorizontal, Plus, Trash2 } from 'lucide-react'
+import { FileText, Loader2, MoreHorizontal, Plus, Share2, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { PageHeader } from '@/components/shared/page-header'
 import { EmptyState } from '@/components/shared/empty-state'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog'
 import { DataTable } from '@/components/data-table/data-table'
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header'
+import { DocumentShareDialog } from '@/components/shared/document-share-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useDeleteQuotation, useQuotations } from '@/features/sales/hooks/use-quotations'
+import { fetchQuotationItems } from '@/features/sales/api/sales-api'
 import { QuotationFormDrawer } from '@/features/sales/components/quotation-form-drawer'
 import { QuotationDetailSheet } from '@/features/sales/components/quotation-detail-sheet'
 import { QUOTATION_STATUS_LABELS, type QuotationWithRelations } from '@/features/sales/types/sales-types'
+import { useCompanyProfile } from '@/features/settings/hooks/use-company-profile'
+import { generateDocumentPdf, type PdfLineItem } from '@/lib/pdf-generator'
 import { useAuth } from '@/providers/auth-provider'
 
 export function QuotationsPage() {
-  const { hasPermission } = useAuth()
+  const { hasPermission, profile } = useAuth()
   const canManage = hasPermission('sales.manage')
+  const { data: company } = useCompanyProfile()
 
   const { data: quotations, isLoading } = useQuotations()
   const deleteQuotation = useDeleteQuotation()
@@ -29,6 +35,29 @@ export function QuotationsPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [selected, setSelected] = useState<QuotationWithRelations | null>(null)
   const [deleting, setDeleting] = useState<QuotationWithRelations | null>(null)
+  const [shareTarget, setShareTarget] = useState<{ quotation: QuotationWithRelations; items: PdfLineItem[] } | null>(null)
+  const [loadingShareId, setLoadingShareId] = useState<string | null>(null)
+
+  const handleShare = async (quotation: QuotationWithRelations) => {
+    setLoadingShareId(quotation.id)
+    try {
+      const rawItems = await fetchQuotationItems(quotation.id)
+      const items: PdfLineItem[] = rawItems.map((i) => ({
+        description: i.product.name,
+        hsn_code: i.product.hsn_code,
+        quantity: i.quantity,
+        unit: i.product.unit?.short_code ?? null,
+        unit_price: i.unit_price,
+        gst_rate: i.gst_rate,
+        line_total: i.line_total,
+      }))
+      setShareTarget({ quotation, items })
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load quotation items')
+    } finally {
+      setLoadingShareId(null)
+    }
+  }
 
   const filtered = useMemo(() => (quotations ?? []).filter((q) => (statusFilter === 'all' ? true : q.status === statusFilter)), [quotations, statusFilter])
 
@@ -73,6 +102,9 @@ export function QuotationsPage() {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setSelected(row.original)}>
                 <FileText /> View Details
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={loadingShareId === row.original.id} onClick={() => void handleShare(row.original)}>
+                {loadingShareId === row.original.id ? <Loader2 className="animate-spin" /> : <Share2 />} Share
               </DropdownMenuItem>
               {row.original.status === 'draft' && (
                 <DropdownMenuItem variant="destructive" onClick={() => setDeleting(row.original)}>
@@ -137,6 +169,45 @@ export function QuotationsPage() {
         isPending={deleteQuotation.isPending}
         onConfirm={() => deleting && deleteQuotation.mutate(deleting.id, { onSuccess: () => setDeleting(null) })}
       />
+
+      {shareTarget && company && profile?.companyId && (
+        <DocumentShareDialog
+          open={Boolean(shareTarget)}
+          onOpenChange={(open) => !open && setShareTarget(null)}
+          docLabel={`Quotation ${shareTarget.quotation.quotation_number}`}
+          docType="quotation"
+          docId={shareTarget.quotation.id}
+          companyId={profile.companyId}
+          partyName={shareTarget.quotation.customer.name}
+          partyEmail={shareTarget.quotation.customer.email}
+          partyPhone={shareTarget.quotation.customer.phone}
+          buildPdf={() =>
+            generateDocumentPdf({
+              docTitle: 'Quotation',
+              docNumber: shareTarget.quotation.quotation_number,
+              docDate: shareTarget.quotation.quotation_date,
+              dueOrValidLabel: 'Valid Until',
+              dueOrValidDate: shareTarget.quotation.valid_until,
+              company,
+              party: {
+                name: shareTarget.quotation.customer.name,
+                address: shareTarget.quotation.customer.billing_address,
+                gstin: shareTarget.quotation.customer.gstin,
+                pan_number: shareTarget.quotation.customer.pan_number,
+                phone: shareTarget.quotation.customer.phone,
+                email: shareTarget.quotation.customer.email,
+              },
+              partyLabel: 'Quotation For',
+              items: shareTarget.items,
+              subtotal: shareTarget.quotation.subtotal,
+              discountTotal: shareTarget.quotation.discount_total,
+              taxTotal: shareTarget.quotation.tax_total,
+              total: shareTarget.quotation.total,
+              notes: shareTarget.quotation.notes,
+            })
+          }
+        />
+      )}
     </div>
   )
 }
