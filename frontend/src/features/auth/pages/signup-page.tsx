@@ -6,7 +6,7 @@ export function SignupPage() {
   return (
     <AuthLayout
       title="Create your account"
-      description="Set up your company's TransFab AI ERP workspace."
+      description="Set up your company's TransFlow AI ERP workspace."
       footer={
         <>
           Already have an account?{' '}
