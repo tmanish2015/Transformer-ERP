@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { ShieldCheck, Wrench, Gauge } from 'lucide-react'
-import { TransFlowMark } from '@/components/brand/transflow-mark'
+import { TransFabMark } from '@/components/brand/transfab-mark'
 
 const highlights = [
   { icon: Wrench, text: 'Full repair job-card lifecycle, stage by stage' },
@@ -26,9 +26,9 @@ export function AuthLayout({ title, description, children, footer }: AuthLayoutP
 
         <div className="relative z-10 flex items-center gap-2">
           <div className="flex size-9 items-center justify-center rounded-lg bg-white text-primary">
-            <TransFlowMark className="size-5" />
+            <TransFabMark className="size-5" />
           </div>
-          <span className="text-lg font-semibold text-primary-foreground">TransFlow AI ERP</span>
+          <span className="text-lg font-semibold text-primary-foreground">TransFab AI ERP</span>
         </div>
 
         <div className="relative z-10 space-y-8">
@@ -48,7 +48,7 @@ export function AuthLayout({ title, description, children, footer }: AuthLayoutP
         </div>
 
         <p className="relative z-10 text-xs text-primary-foreground/60">
-          &copy; {new Date().getFullYear()} TransFlow AI ERP. All rights reserved.
+          &copy; {new Date().getFullYear()} TransFab AI ERP. All rights reserved.
         </p>
       </div>
 
@@ -56,9 +56,9 @@ export function AuthLayout({ title, description, children, footer }: AuthLayoutP
         <div className="mx-auto w-full max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="mb-8 flex items-center gap-2 lg:hidden">
             <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <TransFlowMark className="size-5" />
+              <TransFabMark className="size-5" />
             </div>
-            <span className="text-lg font-semibold text-foreground">TransFlow AI ERP</span>
+            <span className="text-lg font-semibold text-foreground">TransFab AI ERP</span>
           </div>
 
           <div className="mb-8 space-y-1.5">

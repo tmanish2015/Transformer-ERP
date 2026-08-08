@@ -6,7 +6,7 @@ export function LoginPage() {
   return (
     <AuthLayout
       title="Welcome back"
-      description="Sign in to your TransFlow AI ERP workspace."
+      description="Sign in to your TransFab AI ERP workspace."
       footer={
         <>
           New to your team's workspace?{' '}

@@ -1,4 +1,4 @@
-import { TransFlowMark } from '@/components/brand/transflow-mark'
+import { TransFabMark } from '@/components/brand/transfab-mark'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { NavLinks } from '@/components/layout/nav-links'
 
@@ -13,9 +13,9 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
       <SheetContent side="left" className="w-64 bg-sidebar p-0">
         <SheetHeader className="h-14 flex-row items-center gap-2 space-y-0 border-b border-sidebar-border px-5">
           <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <TransFlowMark className="size-4" />
+            <TransFabMark className="size-4" />
           </div>
-          <SheetTitle className="text-sm font-semibold text-sidebar-foreground">TransFlow AI ERP</SheetTitle>
+          <SheetTitle className="text-sm font-semibold text-sidebar-foreground">TransFab AI ERP</SheetTitle>
         </SheetHeader>
 
         <NavLinks onNavigate={() => onOpenChange(false)} />

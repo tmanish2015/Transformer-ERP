@@ -146,7 +146,7 @@ export function QuotationDetailSheet({ open, onOpenChange, quotation }: Quotatio
                   <div className="flex gap-2">
                     <Select value={warehouseId} onValueChange={(v) => setWarehouseId(v ?? '')}>
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select warehouse" />
+                        <SelectValue placeholder="Select warehouse">{warehouses?.find((w) => w.id === warehouseId)?.name ?? ''}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {warehouses?.map((w) => (
