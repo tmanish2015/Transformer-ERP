@@ -1,4 +1,4 @@
-import { Boxes, CalendarClock, Factory, FlaskConical, LayoutDashboard, Landmark, Settings, ShoppingBag, Sparkles, Target, Truck, TrendingUp, UserCog, Users, UserRound, Wrench, type LucideIcon } from 'lucide-react'
+import { BarChart3, Boxes, CalendarClock, Factory, FlaskConical, LayoutDashboard, Landmark, Settings, ShoppingBag, Sparkles, Target, Truck, TrendingUp, UserCog, Users, UserRound, Wrench, type LucideIcon } from 'lucide-react'
 
 export interface NavLink {
   type: 'link'
@@ -35,7 +35,10 @@ export interface NavSection {
 export const navSections: NavSection[] = [
   {
     label: 'Main',
-    entries: [{ type: 'link', label: 'Dashboard', to: '/', icon: LayoutDashboard }],
+    entries: [
+      { type: 'link', label: 'Dashboard', to: '/', icon: LayoutDashboard },
+      { type: 'link', label: 'CEO Dashboard', to: '/executive', icon: BarChart3, permission: 'dashboard.ceo.view' },
+    ],
   },
   {
     label: 'Sales & CRM',

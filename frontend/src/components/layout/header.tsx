@@ -6,6 +6,7 @@ import { UserMenu } from '@/features/auth/components/user-menu'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
+  '/executive': 'CEO Dashboard',
   '/profile': 'Profile',
   '/team': 'Team Members',
   '/settings': 'Company Settings',

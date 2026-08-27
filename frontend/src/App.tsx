@@ -15,6 +15,7 @@ import { RequirePermission } from '@/components/auth/require-permission'
 import { queryClient } from '@/lib/query-client'
 
 const DashboardPage = lazy(() => import('@/features/dashboard/pages/dashboard-page').then((m) => ({ default: m.DashboardPage })))
+const CeoDashboardPage = lazy(() => import('@/features/dashboard/pages/ceo-dashboard-page').then((m) => ({ default: m.CeoDashboardPage })))
 const LoginPage = lazy(() => import('@/features/auth/pages/login-page').then((m) => ({ default: m.LoginPage })))
 const SignupPage = lazy(() => import('@/features/auth/pages/signup-page').then((m) => ({ default: m.SignupPage })))
 const ForgotPasswordPage = lazy(() => import('@/features/auth/pages/forgot-password-page').then((m) => ({ default: m.ForgotPasswordPage })))
@@ -119,6 +120,14 @@ function App() {
                       <Route element={<RequireCompany />}>
                         <Route element={<Layout />}>
                           <Route index element={<DashboardPage />} />
+                          <Route
+                            path="executive"
+                            element={
+                              <RequirePermission permission="dashboard.ceo.view">
+                                <CeoDashboardPage />
+                              </RequirePermission>
+                            }
+                          />
                           <Route path="profile" element={<ProfilePage />} />
                           <Route
                             path="team"
