@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, XAxis, YAxis } from 'recharts'
 import { AlertTriangle, Banknote, Briefcase, CircleDollarSign, Landmark, ReceiptText, ShieldCheck, TrendingDown, TrendingUp, Truck, Users, Wrench } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -363,6 +363,28 @@ export function CeoDashboardPage() {
     return current.map((m, i) => ({ month: m.label, current: revenueFor(m), previous: revenueFor(previous[i]) }))
   }, [invoices])
 
+  // Calendar-year (Jan..current month) rental revenue trend for the hero card, plus a real
+  // same-months-last-year comparison -- "This Year" as shown in the reference, never fabricated.
+  const yearlyRentalTrend = useMemo(() => {
+    const rentalInvoices = (invoices ?? []).filter((i) => i.invoice_type === 'rental')
+    const now = new Date()
+    const monthsSoFar = now.getMonth() + 1
+    const months: { label: string; start: string; end: string }[] = []
+    for (let m = 0; m < monthsSoFar; m++) {
+      const start = new Date(now.getFullYear(), m, 1)
+      const end = new Date(now.getFullYear(), m + 1, 0)
+      months.push({ label: start.toLocaleDateString('en-IN', { month: 'short' }), start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) })
+    }
+    const revenueFor = (m: { start: string; end: string }) => rentalInvoices.filter((i) => i.invoice_date >= m.start && i.invoice_date <= m.end).reduce((s, i) => s + i.total, 0)
+    const data = months.map((m) => ({ month: m.label, revenue: revenueFor(m) }))
+    const yearTotal = data.reduce((s, d) => s + d.revenue, 0)
+    const prevYearStart = `${now.getFullYear() - 1}-01-01`
+    const prevYearEnd = `${now.getFullYear() - 1}-${String(monthsSoFar).padStart(2, '0')}-${new Date(now.getFullYear() - 1, monthsSoFar, 0).getDate()}`
+    const prevYearTotal = rentalInvoices.filter((i) => i.invoice_date >= prevYearStart && i.invoice_date <= prevYearEnd).reduce((s, i) => s + i.total, 0)
+    const yearChangePct = prevYearTotal > 0 ? ((yearTotal - prevYearTotal) / prevYearTotal) * 100 : null
+    return { data, yearTotal, yearChangePct }
+  }, [invoices])
+
   // ---------- Needs Attention ----------
   const attentionItems = useMemo(() => {
     const items: { level: 'red' | 'orange'; text: string; count: number }[] = []
@@ -467,7 +489,14 @@ export function CeoDashboardPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="border-primary/20 bg-primary/[0.04]">
           <CardHeader>
-            <CardTitle className="text-base">AI Business Briefing</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">AI Business Briefing</CardTitle>
+              {trendData.length > 1 && (
+                <div className="h-8 w-20 shrink-0 opacity-70">
+                  <Sparkline values={trendData.map((d) => d.profit)} positive={trendData[trendData.length - 1].profit >= trendData[0].profit} />
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {briefing ? (
@@ -501,15 +530,18 @@ export function CeoDashboardPage() {
             {attentionItems.length === 0 ? (
               <p className="text-sm text-muted-foreground">No exceptions right now.</p>
             ) : (
-              attentionItems.map((item, i) => (
-                <div key={i} className="flex items-center justify-between rounded-md px-1.5 py-1 text-sm">
-                  <span className="flex items-center gap-2 text-foreground">
-                    <span className={item.level === 'red' ? 'text-chart-critical' : 'text-chart-warning'}>{item.level === 'red' ? '🔴' : '🟠'}</span>
-                    {item.text}
-                  </span>
-                  <Badge variant="outline">{item.count}</Badge>
-                </div>
-              ))
+              <>
+                {attentionItems.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-md px-1.5 py-1 text-sm">
+                    <span className="flex items-center gap-2 text-foreground">
+                      <span className={item.level === 'red' ? 'text-chart-critical' : 'text-chart-warning'}>{item.level === 'red' ? '🔴' : '🟠'}</span>
+                      {item.text}
+                    </span>
+                    <Badge variant="outline">{item.count}</Badge>
+                  </div>
+                ))}
+                <p className="pt-1 text-xs font-medium text-primary">View All Alerts &rarr;</p>
+              </>
             )}
           </CardContent>
         </Card>
@@ -556,15 +588,16 @@ export function CeoDashboardPage() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={trendConfig} className="h-56 w-full">
-              <LineChart data={trendData}>
+              <BarChart data={trendData}>
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} />
                 <YAxis tickLine={false} axisLine={false} width={50} tickFormatter={(v) => fmtCompact(v)} />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Line type="monotone" dataKey="revenue" stroke="var(--color-revenue)" strokeWidth={2} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="expense" stroke="var(--color-expense)" strokeWidth={2} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="profit" stroke="var(--color-profit)" strokeWidth={2} dot={{ r: 3 }} />
-              </LineChart>
+                <Legend />
+                <Bar dataKey="revenue" fill="var(--color-revenue)" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="expense" fill="var(--color-expense)" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="profit" fill="var(--color-profit)" radius={[3, 3, 0, 0]} />
+              </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -581,14 +614,20 @@ export function CeoDashboardPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Job</TableHead>
+                    <TableHead>Customer</TableHead>
                     <TableHead className="text-right">Revenue</TableHead>
+                    <TableHead className="text-right">Cost</TableHead>
+                    <TableHead className="text-right">Profit</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {jobStats.profitability.map((r) => (
                     <TableRow key={r.job}>
                       <TableCell className="font-medium">{r.job}</TableCell>
+                      <TableCell className="text-muted-foreground">{r.customer}</TableCell>
                       <TableCell className="text-right">{fmtCompact(r.revenue)}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">Not available</TableCell>
+                      <TableCell className="text-right text-muted-foreground">Not available</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -650,22 +689,23 @@ export function CeoDashboardPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Machine Rental Revenue</CardTitle>
-              <span className="text-xs text-muted-foreground">{DASHBOARD_PERIOD_LABELS[period]}</span>
+              <span className="text-xs text-muted-foreground">This Year</span>
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold text-foreground">{fmtCompact(rental.rentalRevenue)}</p>
+            <p className="text-4xl font-bold text-foreground">{fmtCompact(yearlyRentalTrend.yearTotal)}</p>
             <p className="mt-1 text-xs text-muted-foreground">Total Rental Revenue</p>
-            {rental.sixMonthChangePct !== null ? (
-              <Badge variant={rental.sixMonthChangePct >= 0 ? 'default' : 'destructive'} className="mt-2 gap-1">
-                {rental.sixMonthChangePct >= 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
-                {Math.abs(rental.sixMonthChangePct).toFixed(1)}% vs Previous 6 Months
+            {yearlyRentalTrend.yearTotal === 0 && <p className="mt-1 text-xs text-muted-foreground">No rental revenue data available.</p>}
+            {yearlyRentalTrend.yearChangePct !== null ? (
+              <Badge variant={yearlyRentalTrend.yearChangePct >= 0 ? 'default' : 'destructive'} className="mt-2 gap-1">
+                {yearlyRentalTrend.yearChangePct >= 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
+                {Math.abs(yearlyRentalTrend.yearChangePct).toFixed(1)}% vs same period last year
               </Badge>
             ) : (
-              <p className="mt-2 text-xs text-muted-foreground">No prior 6-month data to compare</p>
+              <p className="mt-2 text-xs text-muted-foreground">No prior-year data to compare</p>
             )}
             <ChartContainer config={rentalHeroConfig} className="mt-4 h-40 w-full">
-              <AreaChart data={trendData.length ? rentalComparisonData.map((d) => ({ month: d.month, revenue: d.current })) : []}>
+              <AreaChart data={yearlyRentalTrend.data}>
                 <defs>
                   <linearGradient id="rentalHeroFill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--color-revenue)" stopOpacity={0.4} />
