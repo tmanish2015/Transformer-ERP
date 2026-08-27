@@ -1,21 +1,16 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts'
-import { AlertTriangle, ArrowRight, Package, Plus, TrendingDown, TrendingUp, Truck, Wrench } from 'lucide-react'
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, XAxis, YAxis } from 'recharts'
+import { AlertTriangle, Banknote, Briefcase, CircleDollarSign, Landmark, ReceiptText, ShieldCheck, TrendingDown, TrendingUp, Truck, Users, Wrench } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { useLedgerLines } from '@/features/finance/hooks/use-ledger-lines'
 import { useChartOfAccounts } from '@/features/finance/hooks/use-chart-of-accounts'
-import { useExpenses } from '@/features/finance/hooks/use-expenses'
 import {
   useDashboardBills,
-  useDashboardCustomers,
   useDashboardEstimatesAwaitingApproval,
   useDashboardInvoices,
   useDashboardRentalAssetLookup,
@@ -30,8 +25,9 @@ import { DASHBOARD_PERIOD_LABELS, type AgingBucket, type DashboardPeriod } from 
 const fmt = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`
 const fmtCompact = (n: number) => {
   const abs = Math.abs(n)
-  if (abs >= 10000000) return `₹${(n / 10000000).toFixed(2)}Cr`
-  if (abs >= 100000) return `₹${(n / 100000).toFixed(2)}L`
+  const sign = n < 0 ? '-' : ''
+  if (abs >= 10000000) return `${sign}₹${(abs / 10000000).toFixed(2)}Cr`
+  if (abs >= 100000) return `${sign}₹${(abs / 100000).toFixed(2)}L`
   return fmt(n)
 }
 const todayStr = () => new Date().toISOString().slice(0, 10)
@@ -55,21 +51,46 @@ function emptyBucket(): AgingBucket {
   return { current: 0, d1_30: 0, d31_60: 0, d60_plus: 0, total: 0 }
 }
 
+function greeting(): string {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning, Owner! Here’s your business overview.'
+  if (hour < 17) return 'Good afternoon, Owner! Here’s your business overview.'
+  return 'Good evening, Owner! Here’s your business overview.'
+}
+
+function lastNMonths(n: number, offsetMonths = 0) {
+  const months: { label: string; start: string; end: string }[] = []
+  const now = new Date()
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i - offsetMonths, 1)
+    const end = new Date(now.getFullYear(), now.getMonth() - i - offsetMonths + 1, 0)
+    months.push({ label: d.toLocaleDateString('en-IN', { month: 'short' }), start: d.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) })
+  }
+  return months
+}
+
 const trendConfig = {
   revenue: { label: 'Revenue', color: 'var(--chart-success)' },
   expense: { label: 'Expenses', color: 'var(--chart-critical)' },
+  profit: { label: 'Profit', color: 'var(--chart-2)' },
 } satisfies ChartConfig
 
-const rentalTrendConfig = {
-  revenue: { label: 'Rental Revenue', color: 'var(--chart-1)' },
+const rentalHeroConfig = {
+  revenue: { label: 'Rental Revenue', color: 'var(--primary)' },
 } satisfies ChartConfig
+
+const rentalComparisonConfig = {
+  current: { label: 'Current Period', color: 'var(--primary)' },
+  previous: { label: 'Previous Period', color: 'var(--muted-foreground)' },
+} satisfies ChartConfig
+
+const expenseDonutColors = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)', 'var(--chart-critical)']
 
 export function CeoDashboardPage() {
   const [period, setPeriod] = useState<DashboardPeriod>('month')
 
   const { data: lines, isLoading: linesLoading } = useLedgerLines()
   const { data: accounts, isLoading: accountsLoading } = useChartOfAccounts()
-  const { data: expenses } = useExpenses()
   const { data: invoices, isLoading: invoicesLoading } = useDashboardInvoices()
   const { data: bills } = useDashboardBills()
   const { data: repairJobs, isLoading: jobsLoading } = useDashboardRepairJobs()
@@ -78,7 +99,6 @@ export function CeoDashboardPage() {
   const { data: rentalAssetLookup } = useDashboardRentalAssetLookup()
   const { data: rentalBookings } = useDashboardRentalBookings()
   const { data: stockAlerts } = useDashboardStockAlerts()
-  const { data: customers } = useDashboardCustomers()
 
   const isLoading = linesLoading || accountsLoading || invoicesLoading || jobsLoading || rentalLoading
 
@@ -99,7 +119,24 @@ export function CeoDashboardPage() {
     const totalExpense = expenseByAccount.reduce((s, r) => s + r.amount, 0)
     const profit = revenue - totalExpense
     const margin = revenue > 0 ? (profit / revenue) * 100 : 0
-    return { revenue, totalExpense, profit, margin, expenseByAccount, incomeAccounts, expenseAccounts, sumFor }
+
+    // Month-over-month comparison, independent of the period selector, for KPI trend arrows.
+    const now = new Date()
+    const curStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const prevStart = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-01`
+    const prevEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0, 10)
+    const curRevenue = incomeAccounts.reduce((s, a) => s + sumFor(a.id, curStart, to), 0)
+    const prevRevenue = incomeAccounts.reduce((s, a) => s + sumFor(a.id, prevStart, prevEnd), 0)
+    const revenueChangePct = prevRevenue > 0 ? ((curRevenue - prevRevenue) / prevRevenue) * 100 : null
+    const curExpense = expenseAccounts.reduce((s, a) => s + -sumFor(a.id, curStart, to), 0)
+    const prevExpense = expenseAccounts.reduce((s, a) => s + -sumFor(a.id, prevStart, prevEnd), 0)
+    const expenseChangePct = prevExpense > 0 ? ((curExpense - prevExpense) / prevExpense) * 100 : null
+    const curProfit = curRevenue - curExpense
+    const prevProfit = prevRevenue - prevExpense
+    const profitChangePct = prevProfit !== 0 ? ((curProfit - prevProfit) / Math.abs(prevProfit)) * 100 : null
+
+    return { revenue, totalExpense, profit, margin, expenseByAccount, incomeAccounts, expenseAccounts, sumFor, revenueChangePct, expenseChangePct, profitChangePct }
   }, [accounts, postedLines, from, to])
 
   // ---------- Cash & Bank ----------
@@ -189,7 +226,7 @@ export function CeoDashboardPage() {
       })
       .filter((r) => r.revenue > 0)
       .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 8)
+      .slice(0, 5)
 
     return { jobs, active, completed, pending, cancelled, delayed, awaitingTesting, readyForDelivery, avgJobValue, avgRepairDays, profitability }
   }, [repairJobs, invoices])
@@ -216,42 +253,18 @@ export function CeoDashboardPage() {
       .sort((a, b) => b.current - a.current)
 
     const unusual = byCategory.filter((r) => r.previous > 0 && r.current > r.previous * 1.3 && r.current - r.previous > 1000)
+    const donutData = byCategory.slice(0, 6).map((c, i) => ({ name: c.name, value: c.current, fill: expenseDonutColors[i % expenseDonutColors.length] }))
 
-    const jobLinked = (expenses ?? []).filter((e) => e.repair_job_id).reduce((s, e) => s + e.amount, 0)
-    const nonJob = (expenses ?? []).filter((e) => !e.repair_job_id).reduce((s, e) => s + e.amount, 0)
-
-    return { currentTotal, previousTotal, momChange, byCategory: byCategory.slice(0, 6), unusual, jobLinked, nonJob }
-  }, [pnl, to, expenses])
-
-  // ---------- Customers ----------
-  const customerStats = useMemo(() => {
-    const byRevenue = new Map<string, { name: string; revenue: number }>()
-    const byOutstanding = new Map<string, { name: string; outstanding: number }>()
-    for (const inv of invoices ?? []) {
-      const rev = byRevenue.get(inv.customer_id) ?? { name: inv.customer_name, revenue: 0 }
-      rev.revenue += inv.total
-      byRevenue.set(inv.customer_id, rev)
-      const outstanding = inv.total - inv.amount_received
-      if (outstanding > 0.01) {
-        const o = byOutstanding.get(inv.customer_id) ?? { name: inv.customer_name, outstanding: 0 }
-        o.outstanding += outstanding
-        byOutstanding.set(inv.customer_id, o)
-      }
-    }
-    const newCustomers = (customers ?? []).filter((c) => c.created_at.slice(0, 10) >= from)
-    return {
-      topByRevenue: [...byRevenue.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 5),
-      topByOutstanding: [...byOutstanding.values()].sort((a, b) => b.outstanding - a.outstanding).slice(0, 5),
-      newCustomers: newCustomers.length,
-    }
-  }, [invoices, customers, from])
+    return { currentTotal, previousTotal, momChange, byCategory: byCategory.slice(0, 6), unusual, donutData }
+  }, [pnl, to])
 
   // ---------- Rental ----------
   // No formal Rental Agreement process is in use, so nothing here reads rental_agreements
   // dates/status. rentalAssetLookup touches rental_agreements ONLY to resolve which physical
   // machine a rental invoice belongs to (id lookup) -- see fetchDashboardRentalAssetLookup.
   // "Current rentals" and any date-based rental view come from rental_bookings instead, which
-  // is a separate, independently-populated table.
+  // is a separate, independently-populated table -- and its end_date is never read either,
+  // since it's just as corrupted as rental_agreements.end_date.
   const rental = useMemo(() => {
     const assets = rentalAssets ?? []
     const assetLookup = rentalAssetLookup ?? []
@@ -276,6 +289,14 @@ export function CeoDashboardPage() {
     const prevMonthRevenue = rentalInvoices.filter((i) => i.invoice_date >= prevStart && i.invoice_date <= prevEnd).reduce((s, i) => s + i.total, 0)
     const revenueChangePct = prevMonthRevenue > 0 ? ((curMonthRevenue - prevMonthRevenue) / prevMonthRevenue) * 100 : null
 
+    // Last-6-months total vs the 6 months before that -- real data, used for the hero card's
+    // "vs Previous 6 Months" comparison.
+    const last6 = lastNMonths(6)
+    const prior6 = lastNMonths(6, 6)
+    const last6Total = rentalInvoices.filter((i) => i.invoice_date >= last6[0].start && i.invoice_date <= last6[5].end).reduce((s, i) => s + i.total, 0)
+    const prior6Total = rentalInvoices.filter((i) => i.invoice_date >= prior6[0].start && i.invoice_date <= prior6[5].end).reduce((s, i) => s + i.total, 0)
+    const sixMonthChangePct = prior6Total > 0 ? ((last6Total - prior6Total) / prior6Total) * 100 : null
+
     const rentalReceivables = aging(rentalInvoices.map((i) => ({ total: i.total, paid: i.amount_received, dueOrDocDate: i.due_date ?? i.invoice_date })))
 
     // Machine identity for a rental invoice: invoice -> rental_agreement_id -> rental_asset_id
@@ -295,10 +316,8 @@ export function CeoDashboardPage() {
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5)
 
-    // Current/active rentals from rental_bookings (independent of rental_agreements): a
-    // confirmed booking whose date range covers today.
-    // status alone (not end_date -- see note above the fetch function) determines "current":
-    // a confirmed booking that hasn't been completed or cancelled.
+    // Current/active rentals from rental_bookings status alone (not end_date -- see note
+    // above): a confirmed booking that hasn't been completed or cancelled.
     const currentRentals = bookings.filter((b) => b.status === 'confirmed').slice(0, 8)
 
     const maintenanceAssets = assets.filter((a) => a.status === 'maintenance')
@@ -315,6 +334,7 @@ export function CeoDashboardPage() {
       curMonthRevenue,
       prevMonthRevenue,
       revenueChangePct,
+      sixMonthChangePct,
       rentalReceivables,
       topMachines,
       currentRentals,
@@ -323,71 +343,57 @@ export function CeoDashboardPage() {
     }
   }, [rentalAssets, rentalAssetLookup, rentalBookings, invoices, from, to])
 
-  // ---------- Trend (last 6 months, revenue vs expense) ----------
+  // ---------- Trend charts (last 6 months) ----------
   const trendData = useMemo(() => {
-    const months: { label: string; start: string; end: string }[] = []
-    const now = new Date()
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0)
-      months.push({
-        label: d.toLocaleDateString('en-IN', { month: 'short' }),
-        start: d.toISOString().slice(0, 10),
-        end: end.toISOString().slice(0, 10),
-      })
-    }
-    return months.map((m) => ({
-      month: m.label,
-      revenue: pnl.incomeAccounts.reduce((s, a) => s + pnl.sumFor(a.id, m.start, m.end), 0),
-      expense: pnl.expenseAccounts.reduce((s, a) => s + -pnl.sumFor(a.id, m.start, m.end), 0),
-    }))
+    return lastNMonths(6).map((m) => {
+      const revenue = pnl.incomeAccounts.reduce((s, a) => s + pnl.sumFor(a.id, m.start, m.end), 0)
+      const expense = pnl.expenseAccounts.reduce((s, a) => s + -pnl.sumFor(a.id, m.start, m.end), 0)
+      return { month: m.label, revenue, expense, profit: revenue - expense }
+    })
   }, [pnl])
 
-  const rentalTrendData = useMemo(() => {
-    const months: { label: string; start: string; end: string }[] = []
-    const now = new Date()
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0)
-      months.push({ label: d.toLocaleDateString('en-IN', { month: 'short' }), start: d.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) })
-    }
+  // Real month-by-month rental revenue, current 6 months and the 6 months immediately before
+  // -- an honest "current vs previous period" comparison. If there's no data that far back
+  // (a new install), the "previous" bars are genuinely 0, not fabricated.
+  const rentalComparisonData = useMemo(() => {
     const rentalInvoices = (invoices ?? []).filter((i) => i.invoice_type === 'rental')
-    return months.map((m) => ({ month: m.label, revenue: rentalInvoices.filter((i) => i.invoice_date >= m.start && i.invoice_date <= m.end).reduce((s, i) => s + i.total, 0) }))
+    const revenueFor = (m: { start: string; end: string }) => rentalInvoices.filter((i) => i.invoice_date >= m.start && i.invoice_date <= m.end).reduce((s, i) => s + i.total, 0)
+    const current = lastNMonths(6)
+    const previous = lastNMonths(6, 6)
+    return current.map((m, i) => ({ month: m.label, current: revenueFor(m), previous: revenueFor(previous[i]) }))
   }, [invoices])
 
   // ---------- Needs Attention ----------
   const attentionItems = useMemo(() => {
-    const items: { level: 'red' | 'orange'; text: string }[] = []
-    if (overdueReceivablesCount > 0) items.push({ level: 'red', text: `${overdueReceivablesCount} customer payment${overdueReceivablesCount === 1 ? '' : 's'} overdue, totalling ${fmtCompact(receivables.d1_30 + receivables.d31_60 + receivables.d60_plus)}` })
-    if (jobStats.delayed.length > 0) items.push({ level: 'red', text: `${jobStats.delayed.length} repair job${jobStats.delayed.length === 1 ? '' : 's'} with no stage update in over 7 days` })
-    for (const u of expenseSummary.unusual) items.push({ level: 'orange', text: `Unusually high expense: ${u.name} is up ${Math.round(((u.current - u.previous) / u.previous) * 100)}% vs last month` })
-    if ((stockAlerts ?? []).length > 0) items.push({ level: 'orange', text: `${stockAlerts!.length} product${stockAlerts!.length === 1 ? '' : 's'} at or below reorder level` })
-    if ((estimatesAwaiting ?? 0) > 0) items.push({ level: 'orange', text: `${estimatesAwaiting} repair estimate${estimatesAwaiting === 1 ? '' : 's'} awaiting customer approval` })
-    if (rental.maintenanceAssets.length > 0) items.push({ level: 'orange', text: `${rental.maintenanceAssets.length} rental machine${rental.maintenanceAssets.length === 1 ? '' : 's'} currently under maintenance` })
+    const items: { level: 'red' | 'orange'; text: string; count: number }[] = []
+    if (overdueReceivablesCount > 0) items.push({ level: 'red', text: 'Overdue Receivables', count: overdueReceivablesCount })
+    if (jobStats.delayed.length > 0) items.push({ level: 'red', text: 'Delayed Repair Jobs', count: jobStats.delayed.length })
+    if ((stockAlerts ?? []).length > 0) items.push({ level: 'orange', text: 'Low Stock Items', count: stockAlerts!.length })
+    if (expenseSummary.unusual.length > 0) items.push({ level: 'orange', text: 'Unusually High Expenses', count: expenseSummary.unusual.length })
+    if ((estimatesAwaiting ?? 0) > 0) items.push({ level: 'orange', text: 'Pending Quotations', count: estimatesAwaiting! })
+    if (rental.maintenanceAssets.length > 0) items.push({ level: 'orange', text: 'Machines Under Maintenance', count: rental.maintenanceAssets.length })
     const bigRentalOverdue = rental.rentalReceivables.d31_60 + rental.rentalReceivables.d60_plus
-    if (bigRentalOverdue > 0) items.push({ level: 'orange', text: `${fmtCompact(bigRentalOverdue)} in rental payments overdue by more than 30 days` })
+    if (bigRentalOverdue > 0) items.push({ level: 'orange', text: 'Overdue Rental Payments (30+ days)', count: 1 })
     return items
-  }, [overdueReceivablesCount, receivables, jobStats.delayed.length, expenseSummary.unusual, stockAlerts, estimatesAwaiting, rental])
+  }, [overdueReceivablesCount, jobStats.delayed.length, stockAlerts, expenseSummary.unusual, estimatesAwaiting, rental])
 
   // ---------- AI Executive Briefing (deterministic, data-grounded -- no LLM call on load) ----------
   const briefing = useMemo(() => {
     if (isLoading) return null
-    const lines: string[] = []
-    lines.push(
-      jobStats.active.length > 0 || overdueReceivablesCount > 0 || jobStats.delayed.length > 0
-        ? attentionItems.some((a) => a.level === 'red')
-          ? 'Business needs attention in a few areas below.'
-          : 'Business is performing normally.'
-        : 'Business is performing normally.',
+    const headline = attentionItems.some((a) => a.level === 'red') ? 'Business needs attention in a few areas below.' : 'Business is performing normally.'
+    const observations: string[] = []
+    if (pnl.revenueChangePct !== null) observations.push(`Revenue is up ${Math.abs(Math.round(pnl.revenueChangePct))}% compared with last month.`)
+    if (pnl.expenseChangePct !== null) observations.push(`Expenses ${pnl.expenseChangePct >= 0 ? 'increased' : 'decreased'} ${Math.abs(Math.round(pnl.expenseChangePct))}% this month.`)
+    observations.push(
+      overdueReceivablesCount > 0
+        ? `${overdueReceivablesCount} customer payment${overdueReceivablesCount === 1 ? '' : 's'} overdue, totalling ${fmtCompact(receivables.d1_30 + receivables.d31_60 + receivables.d60_plus)}.`
+        : 'No overdue customer payments.',
     )
-    lines.push(`${jobStats.active.length} repair job${jobStats.active.length === 1 ? ' is' : 's are'} currently active${jobStats.pending.length > 0 ? `, ${jobStats.pending.length} pending` : ''}.`)
-    if (receivables.total > 0) lines.push(`${fmtCompact(receivables.total)} is outstanding from customers${overdueReceivablesCount > 0 ? `, with ${overdueReceivablesCount} payment${overdueReceivablesCount === 1 ? '' : 's'} overdue` : ''}.`)
-    else lines.push('No outstanding customer payments.')
-    if (expenseSummary.momChange !== null) lines.push(`Expenses ${expenseSummary.momChange >= 0 ? 'increased' : 'decreased'} ${Math.abs(Math.round(expenseSummary.momChange))}% this month vs last month.`)
-    else lines.push('Expense trend vs last month: not available yet (no prior month data).')
-    if (rental.utilization !== null) lines.push(`Machine rental utilisation is ${Math.round(rental.utilization)}% (${rental.rented} of ${rental.total - rental.retired} machines rented).`)
-    return lines.join(' ')
-  }, [isLoading, jobStats, overdueReceivablesCount, receivables, expenseSummary.momChange, rental, attentionItems])
+    observations.push(`${jobStats.active.length} repair job${jobStats.active.length === 1 ? ' is' : 's are'} currently active${jobStats.pending.length > 0 ? `, ${jobStats.pending.length} pending` : ''}.`)
+    if ((stockAlerts ?? []).length > 0) observations.push(`${stockAlerts!.length} inventory item${stockAlerts!.length === 1 ? '' : 's'} require attention.`)
+    if (rental.utilization !== null) observations.push(`Machine rental utilisation is ${Math.round(rental.utilization)}%.`)
+    return { headline, observations }
+  }, [isLoading, attentionItems, pnl.revenueChangePct, pnl.expenseChangePct, overdueReceivablesCount, receivables, jobStats, stockAlerts, rental])
 
   const rentalInsight = useMemo(() => {
     if (isLoading) return null
@@ -403,10 +409,10 @@ export function CeoDashboardPage() {
   }, [isLoading, rental, invoices, period])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         title="CEO Dashboard"
-        description="Executive overview of business, repair, and rental performance."
+        description={greeting()}
         actions={
           <Select value={period} onValueChange={(v) => setPeriod((v as DashboardPeriod) ?? 'month')}>
             <SelectTrigger className="w-[160px]">
@@ -423,285 +429,325 @@ export function CeoDashboardPage() {
         }
       />
 
-      {/* ---------- KPI Cards ---------- */}
+      {/* ---------- 1. KPI Strip ---------- */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KpiCard label="Revenue" value={fmtCompact(pnl.revenue)} />
-        <KpiCard label="Expenses" value={fmtCompact(pnl.totalExpense)} />
-        <KpiCard label="Profit / Margin" value={fmtCompact(pnl.profit)} sub={`${pnl.margin.toFixed(1)}% margin`} tone={pnl.profit >= 0 ? 'good' : 'bad'} />
-        <KpiCard label="Cash & Bank" value={fmtCompact(cash.total)} />
-        <KpiCard label="Outstanding Receivables" value={fmtCompact(receivables.total)} tone={overdueReceivablesCount > 0 ? 'bad' : undefined} />
-        <KpiCard label="Outstanding Payables" value={fmtCompact(payables.total)} />
-        <KpiCard label="Active Repair Jobs" value={String(jobStats.active.length)} />
-        <KpiCard label="Pending Customer Payments" value={String((invoices ?? []).filter((i) => i.total - i.amount_received > 0.01).length)} />
+        <KpiCard icon={CircleDollarSign} iconColor="var(--primary)" label="Revenue" value={fmtCompact(pnl.revenue)} trendPct={pnl.revenueChangePct} sparkline={trendData.map((d) => d.revenue)} />
+        <KpiCard
+          icon={ReceiptText}
+          iconColor="var(--chart-1)"
+          label="Expenses"
+          value={fmtCompact(pnl.totalExpense)}
+          trendPct={pnl.expenseChangePct}
+          invertTrendColor
+          sparkline={trendData.map((d) => d.expense)}
+        />
+        <KpiCard
+          icon={ShieldCheck}
+          iconColor="var(--chart-success)"
+          label="Profit / Margin"
+          value={fmtCompact(pnl.profit)}
+          sub={`${pnl.margin.toFixed(1)}% Margin`}
+          tone={pnl.profit >= 0 ? 'good' : 'bad'}
+          trendPct={pnl.profitChangePct}
+          sparkline={trendData.map((d) => d.profit)}
+        />
+        <KpiCard icon={Landmark} iconColor="var(--chart-5)" label="Cash &amp; Bank Balance" value={fmtCompact(cash.total)} />
+        <KpiCard icon={Users} iconColor="var(--chart-2)" label="Outstanding Receivables" value={fmtCompact(receivables.total)} tone={overdueReceivablesCount > 0 ? 'bad' : undefined} />
+        <KpiCard icon={Users} iconColor="var(--chart-3)" label="Outstanding Payables" value={fmtCompact(payables.total)} />
+        <KpiCard icon={Briefcase} iconColor="var(--chart-1)" label="Active Repair Jobs" value={String(jobStats.active.length)} />
+        <KpiCard
+          icon={Banknote}
+          iconColor="var(--chart-critical)"
+          label="Pending Customer Payments"
+          value={String((invoices ?? []).filter((i) => i.total - i.amount_received > 0.01).length)}
+        />
       </div>
 
-      {/* ---------- AI Executive Briefing ---------- */}
-      <Card className="border-primary/20 bg-primary/[0.03]">
-        <CardHeader>
-          <CardTitle className="text-base">AI Business Briefing</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {briefing ? <p className="text-sm leading-relaxed text-foreground">{briefing}</p> : <p className="text-sm text-muted-foreground">Loading business data...</p>}
-        </CardContent>
-      </Card>
-
-      {/* ---------- Needs Your Attention ---------- */}
-      {attentionItems.length > 0 && (
-        <Card>
+      {/* ---------- 2/3/4. Briefing / Attention / Repair Performance ---------- */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="border-primary/20 bg-primary/[0.04]">
           <CardHeader>
-            <CardTitle className="text-base">Needs Your Attention</CardTitle>
+            <CardTitle className="text-base">AI Business Briefing</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {attentionItems.map((item, i) => (
-              <div key={i} className="flex items-start gap-2 text-sm">
-                <span className={item.level === 'red' ? 'text-chart-critical' : 'text-chart-warning'}>{item.level === 'red' ? '🔴' : '🟠'}</span>
-                <span className="text-foreground">{item.text}</span>
+          <CardContent>
+            {briefing ? (
+              <div className="space-y-2">
+                <Badge variant="default" className="bg-chart-success text-white">
+                  {briefing.headline}
+                </Badge>
+                <ul className="space-y-1.5 pt-1">
+                  {briefing.observations.map((o, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <span className="mt-1.5 size-1 shrink-0 rounded-full bg-primary" />
+                      <span>{o}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            ))}
+            ) : (
+              <p className="text-sm text-muted-foreground">Loading business data...</p>
+            )}
           </CardContent>
         </Card>
-      )}
 
-      {/* ---------- Quick Actions ---------- */}
-      <Card>
-        <CardContent className="flex flex-wrap items-center gap-2 py-4">
-          <Button size="sm" render={<Link to="/sales/customers" />} nativeButton={false}>
-            <Plus className="size-3.5" /> New Customer
-          </Button>
-          <Button size="sm" render={<Link to="/workshop/jobs" />} nativeButton={false}>
-            <Plus className="size-3.5" /> New Repair Job
-          </Button>
-          <Button size="sm" render={<Link to="/finance/expenses" />} nativeButton={false}>
-            <Plus className="size-3.5" /> New Expense
-          </Button>
-          <Button size="sm" render={<Link to="/sales/quotations" />} nativeButton={false}>
-            <Plus className="size-3.5" /> New Quotation
-          </Button>
-          <Button size="sm" render={<Link to="/sales/invoices" />} nativeButton={false}>
-            <Plus className="size-3.5" /> New Invoice
-          </Button>
-          <Button size="sm" variant="outline" render={<Link to="/sales/customer-ledger" />} nativeButton={false}>
-            View Receivables <ArrowRight className="size-3.5" />
-          </Button>
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Needs Your Attention</CardTitle>
+              {attentionItems.length > 0 && <Badge variant="destructive">{attentionItems.length}</Badge>}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            {attentionItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No exceptions right now.</p>
+            ) : (
+              attentionItems.map((item, i) => (
+                <div key={i} className="flex items-center justify-between rounded-md px-1.5 py-1 text-sm">
+                  <span className="flex items-center gap-2 text-foreground">
+                    <span className={item.level === 'red' ? 'text-chart-critical' : 'text-chart-warning'}>{item.level === 'red' ? '🔴' : '🟠'}</span>
+                    {item.text}
+                  </span>
+                  <Badge variant="outline">{item.count}</Badge>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
 
-      <Tabs defaultValue="finance">
-        <TabsList>
-          <TabsTrigger value="finance">Revenue &amp; Finance</TabsTrigger>
-          <TabsTrigger value="repair">Repair Business</TabsTrigger>
-          <TabsTrigger value="rental">Machine Rental</TabsTrigger>
-          <TabsTrigger value="customers">Customers &amp; Inventory</TabsTrigger>
-        </TabsList>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Repair Business Performance</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <StatTile icon={Briefcase} iconColor="var(--primary)" label="Active" value={String(jobStats.active.length)} />
+              <StatTile icon={ShieldCheck} iconColor="var(--chart-success)" label="Completed" value={String(jobStats.completed.length)} />
+              <StatTile icon={ReceiptText} iconColor="var(--chart-1)" label="Pending" value={String(jobStats.pending.length)} />
+              <StatTile icon={AlertTriangle} iconColor="var(--chart-critical)" label="Delayed" value={String(jobStats.delayed.length)} tone={jobStats.delayed.length > 0 ? 'bad' : undefined} />
+              <StatTile icon={ShieldCheck} iconColor="var(--chart-5)" label="Awaiting Approval" value={String(estimatesAwaiting ?? 0)} />
+              <StatTile icon={ReceiptText} iconColor="var(--chart-1)" label="Awaiting Material" value="N/A" muted />
+              <StatTile icon={Wrench} iconColor="var(--chart-2)" label="Awaiting Testing" value={String(jobStats.awaitingTesting.length)} />
+              <StatTile icon={Truck} iconColor="var(--chart-success)" label="Ready for Delivery" value={String(jobStats.readyForDelivery.length)} />
+            </div>
+            <div className="grid grid-cols-3 gap-2 border-t border-border pt-3 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground">Average Job Value</p>
+                <p className="font-semibold text-foreground">{jobStats.avgJobValue !== null ? fmt(jobStats.avgJobValue) : 'Not available'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Average Repair Time</p>
+                <p className="font-semibold text-foreground">{jobStats.avgRepairDays !== null ? `${jobStats.avgRepairDays.toFixed(1)} days` : 'Not available'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Job Profitability</p>
+                <p className="font-semibold text-foreground">{jobStats.profitability.length > 0 ? 'See table below' : 'Not available'}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* ================= FINANCE TAB ================= */}
-        <TabsContent value="finance" className="mt-4 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Revenue vs Expenses (last 6 months)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={trendConfig} className="h-64 w-full">
-                <BarChart data={trendData}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                  <YAxis tickLine={false} axisLine={false} width={60} tickFormatter={(v) => fmtCompact(v)} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="revenue" fill="var(--color-revenue)" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="expense" fill="var(--color-expense)" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
+      {/* ---------- 5. Revenue vs Expenses vs Profit + Job Profitability + Expense Summary + Cash ---------- */}
+      <div className="grid gap-4 lg:grid-cols-5">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Revenue vs Expenses vs Profit</CardTitle>
+            <p className="text-xs text-muted-foreground">Monthly, last 6 months</p>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={trendConfig} className="h-56 w-full">
+              <LineChart data={trendData}>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} />
+                <YAxis tickLine={false} axisLine={false} width={50} tickFormatter={(v) => fmtCompact(v)} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Line type="monotone" dataKey="revenue" stroke="var(--color-revenue)" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="expense" stroke="var(--color-expense)" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="profit" stroke="var(--color-profit)" strokeWidth={2} dot={{ r: 3 }} />
+              </LineChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Receivables Aging</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AgingTable bucket={receivables} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Payables Aging</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AgingTable bucket={payables} />
-              </CardContent>
-            </Card>
-          </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Top 5 Job Profitability</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {jobStats.profitability.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No job financial data available for the selected period.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Job</TableHead>
+                    <TableHead className="text-right">Revenue</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {jobStats.profitability.map((r) => (
+                    <TableRow key={r.job}>
+                      <TableCell className="font-medium">{r.job}</TableCell>
+                      <TableCell className="text-right">{fmtCompact(r.revenue)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Cash Position</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <Row label="Cash in Hand" value={cash.cashBalance !== null ? fmt(cash.cashBalance) : 'Not available'} />
-                <Row label="Bank Balance" value={cash.bankBalance !== null ? fmt(cash.bankBalance) : 'Not available'} />
-                <Row label="Today's Collections" value={fmt(cash.collections)} />
-                <Row label="Today's Payments" value={fmt(cash.payments)} />
-                <Row label="Net Cash Flow (today)" value={fmt(cash.net)} bold />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Expense Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <Row label="Total Expenses (period)" value={fmt(expenseSummary.currentTotal)} />
-                <Row label="Previous Month" value={fmt(expenseSummary.previousTotal)} />
-                <Row label="Change vs Last Month" value={expenseSummary.momChange !== null ? `${expenseSummary.momChange >= 0 ? '+' : ''}${expenseSummary.momChange.toFixed(1)}%` : 'Not available'} />
-                <Row label="Job-related (Expense module)" value={fmt(expenseSummary.jobLinked)} />
-                <Row label="Non-job (Expense module)" value={fmt(expenseSummary.nonJob)} />
-                <div className="pt-2">
-                  <p className="mb-1 text-xs font-medium text-muted-foreground">Top Categories</p>
-                  {expenseSummary.byCategory.length === 0 && <p className="text-xs text-muted-foreground">No expenses recorded.</p>}
-                  {expenseSummary.byCategory.map((c) => (
-                    <Row key={c.name} label={c.name} value={fmt(c.current)} small />
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Expense Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {expenseSummary.donutData.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No expenses recorded.</p>
+            ) : (
+              <>
+                <ChartContainer config={{}} className="mx-auto aspect-square h-32">
+                  <PieChart>
+                    <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                    <Pie data={expenseSummary.donutData} dataKey="value" nameKey="name" innerRadius={38} outerRadius={56} strokeWidth={2}>
+                      {expenseSummary.donutData.map((d, i) => (
+                        <Cell key={i} fill={d.fill} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ChartContainer>
+                <div className="mt-2 space-y-1">
+                  {expenseSummary.donutData.map((d) => (
+                    <div key={d.name} className="flex items-center gap-1.5 text-xs">
+                      <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: d.fill }} />
+                      <span className="min-w-0 flex-1 truncate text-foreground">{d.name}</span>
+                      <span className="text-muted-foreground">{expenseSummary.currentTotal > 0 ? `${Math.round((d.value / expenseSummary.currentTotal) * 100)}%` : '0%'}</span>
+                    </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* ================= REPAIR TAB ================= */}
-        <TabsContent value="repair" className="mt-4 space-y-4">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <KpiCard label="Active" value={String(jobStats.active.length)} icon={Wrench} />
-            <KpiCard label="Pending" value={String(jobStats.pending.length)} />
-            <KpiCard label="Completed" value={String(jobStats.completed.length)} />
-            <KpiCard label="Delayed (7+ days no update)" value={String(jobStats.delayed.length)} tone={jobStats.delayed.length > 0 ? 'bad' : undefined} />
-            <KpiCard label="Awaiting Customer Approval" value={String(estimatesAwaiting ?? 0)} />
-            <KpiCard label="Awaiting Material" value="Not available" muted />
-            <KpiCard label="Awaiting Testing" value={String(jobStats.awaitingTesting.length)} />
-            <KpiCard label="Ready for Delivery" value={String(jobStats.readyForDelivery.length)} />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <KpiCard label="Average Job Value" value={jobStats.avgJobValue !== null ? fmt(jobStats.avgJobValue) : 'Not available'} />
-            <KpiCard label="Average Repair Time" value={jobStats.avgRepairDays !== null ? `${jobStats.avgRepairDays.toFixed(1)} days` : 'Not available'} />
-          </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Cash Position</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <Row label="Cash in Hand" value={cash.cashBalance !== null ? fmt(cash.cashBalance) : 'N/A'} />
+            <Row label="Bank Balance" value={cash.bankBalance !== null ? fmt(cash.bankBalance) : 'N/A'} />
+            <Row label="Today's Collections" value={fmt(cash.collections)} />
+            <Row label="Today's Payments" value={fmt(cash.payments)} />
+            <Row label="Net Cash Flow" value={fmt(cash.net)} bold tone={cash.net >= 0 ? 'good' : 'bad'} />
+          </CardContent>
+        </Card>
+      </div>
 
+      {/* ---------- 6/7. Machine Rental Revenue + Comparison + right column ---------- */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="border-primary/30 bg-gradient-to-br from-primary/10 via-primary/[0.03] to-transparent lg:col-span-1">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Machine Rental Revenue</CardTitle>
+              <span className="text-xs text-muted-foreground">{DASHBOARD_PERIOD_LABELS[period]}</span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-4xl font-bold text-foreground">{fmtCompact(rental.rentalRevenue)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Total Rental Revenue</p>
+            {rental.sixMonthChangePct !== null ? (
+              <Badge variant={rental.sixMonthChangePct >= 0 ? 'default' : 'destructive'} className="mt-2 gap-1">
+                {rental.sixMonthChangePct >= 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
+                {Math.abs(rental.sixMonthChangePct).toFixed(1)}% vs Previous 6 Months
+              </Badge>
+            ) : (
+              <p className="mt-2 text-xs text-muted-foreground">No prior 6-month data to compare</p>
+            )}
+            <ChartContainer config={rentalHeroConfig} className="mt-4 h-40 w-full">
+              <AreaChart data={trendData.length ? rentalComparisonData.map((d) => ({ month: d.month, revenue: d.current })) : []}>
+                <defs>
+                  <linearGradient id="rentalHeroFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-revenue)" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="var(--color-revenue)" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={10} />
+                <YAxis hide />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Area type="monotone" dataKey="revenue" stroke="var(--color-revenue)" strokeWidth={2} fill="url(#rentalHeroFill)" />
+              </AreaChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="text-base">Rental Revenue Comparison &mdash; Last 6 Months</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={rentalComparisonConfig} className="h-56 w-full">
+              <BarChart data={rentalComparisonData}>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} />
+                <YAxis tickLine={false} axisLine={false} width={50} tickFormatter={(v) => fmtCompact(v)} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Legend />
+                <Bar dataKey="current" fill="var(--color-current)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="previous" fill="var(--color-previous)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-4 lg:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Job Profitability</CardTitle>
-              <p className="text-xs text-muted-foreground">Cost tracking isn't implemented for repair jobs yet, so only revenue is shown.</p>
+              <CardTitle className="text-base">Receivables Aging</CardTitle>
             </CardHeader>
             <CardContent>
-              {jobStats.profitability.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No invoiced repair jobs yet.</p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Job</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead className="text-right">Revenue</TableHead>
-                      <TableHead className="text-right">Cost</TableHead>
-                      <TableHead className="text-right">Profit</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {jobStats.profitability.map((r) => (
-                      <TableRow key={r.job}>
-                        <TableCell className="font-medium">{r.job}</TableCell>
-                        <TableCell>{r.customer}</TableCell>
-                        <TableCell className="text-right">{fmt(r.revenue)}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">—</TableCell>
-                        <TableCell className="text-right text-muted-foreground">—</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+              <AgingTable bucket={receivables} />
             </CardContent>
           </Card>
-        </TabsContent>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Payables Aging</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AgingTable bucket={payables} />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
-        {/* ================= RENTAL TAB ================= */}
-        <TabsContent value="rental" className="mt-4 space-y-4">
+      {/* ---------- Machine Rental Insights (utilisation, top machines, maintenance, current rentals) ---------- */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Machine Rental Insights</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <KpiCard label="Total Machines" value={String(rental.total)} icon={Truck} />
-            <KpiCard label="Available" value={String(rental.available)} />
-            <KpiCard label="Currently Rented" value={String(rental.rented)} />
-            <KpiCard label="Under Maintenance" value={String(rental.maintenance)} tone={rental.maintenance > 0 ? 'bad' : undefined} />
-            <KpiCard label="Rental Revenue (period)" value={fmtCompact(rental.rentalRevenue)} />
-            <KpiCard label="Outstanding Rental" value={fmtCompact(rental.rentalReceivables.total)} />
+            <StatTile icon={Truck} iconColor="var(--primary)" label="Total Machines" value={String(rental.total)} />
+            <StatTile icon={ShieldCheck} iconColor="var(--chart-success)" label="Available" value={String(rental.available)} />
+            <StatTile icon={Truck} iconColor="var(--chart-2)" label="Currently Rented" value={String(rental.rented)} />
+            <StatTile icon={AlertTriangle} iconColor="var(--chart-critical)" label="Under Maintenance" value={String(rental.maintenance)} tone={rental.maintenance > 0 ? 'bad' : undefined} />
           </div>
+
+          {rental.utilization !== null && (
+            <div className="space-y-2">
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm font-medium text-foreground">Machine Utilisation</span>
+                <span className="text-2xl font-bold text-foreground">{Math.round(rental.utilization)}%</span>
+              </div>
+              <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, rental.utilization)}%` }} />
+              </div>
+            </div>
+          )}
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Machine Utilisation</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {rental.utilization !== null ? (
-                  <>
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-3xl font-bold text-foreground">{Math.round(rental.utilization)}%</span>
-                      <span className="text-xs text-muted-foreground">
-                        {rental.rented} rented / {rental.total - rental.retired} usable
-                      </span>
-                    </div>
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
-                      <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, rental.utilization)}%` }} />
-                    </div>
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Rented: {rental.rented}</span>
-                      <span>Available: {rental.available}</span>
-                      <span>Maintenance: {rental.maintenance}</span>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Not available -- no rental assets yet.</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Rental Revenue Trend</CardTitle>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{fmt(rental.curMonthRevenue)} this month</span>
-                  {rental.revenueChangePct !== null && (
-                    <Badge variant={rental.revenueChangePct >= 0 ? 'default' : 'destructive'} className="gap-1">
-                      {rental.revenueChangePct >= 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
-                      {Math.abs(rental.revenueChangePct).toFixed(1)}%
-                    </Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer config={rentalTrendConfig} className="h-40 w-full">
-                  <LineChart data={rentalTrendData}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                    <YAxis tickLine={false} axisLine={false} width={50} tickFormatter={(v) => fmtCompact(v)} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line type="monotone" dataKey="revenue" stroke="var(--color-revenue)" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card className="border-primary/20 bg-primary/[0.03]">
-            <CardHeader>
-              <CardTitle className="text-base">AI Rental Insight</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-foreground">{rentalInsight ?? 'Loading...'}</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Top Rental Machines</CardTitle>
-            </CardHeader>
-            <CardContent>
+            <div>
+              <p className="mb-2 text-sm font-medium text-foreground">Top Revenue-Generating Machines</p>
               {rental.topMachines.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No rental invoices yet.</p>
               ) : (
@@ -724,18 +770,12 @@ export function CeoDashboardPage() {
                   </TableBody>
                 </Table>
               )}
-            </CardContent>
-          </Card>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Current Rentals</CardTitle>
-              <p className="text-xs text-muted-foreground">Confirmed rental bookings not yet completed or cancelled. Expected-return dates aren't shown -- the underlying data isn't reliable yet.</p>
-            </CardHeader>
-            <CardContent>
-              {rental.currentRentals.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No active rentals.</p>
-              ) : (
+            {rental.currentRentals.length > 0 && (
+              <div>
+                <p className="mb-2 text-sm font-medium text-foreground">Current Rentals</p>
+                <p className="mb-2 text-xs text-muted-foreground">Confirmed bookings, not yet completed/cancelled. Return dates omitted -- underlying data isn't reliable.</p>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -754,120 +794,135 @@ export function CeoDashboardPage() {
                     ))}
                   </TableBody>
                 </Table>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            )}
+          </div>
 
           {rental.maintenanceAssets.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Rental Maintenance Alert</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1">
-                {rental.maintenanceAssets.map((a) => (
-                  <div key={a.id} className="flex items-center gap-2 text-sm">
-                    <AlertTriangle className="size-3.5 text-chart-warning" />
-                    <span>
-                      {a.name} ({a.asset_code}) — currently under maintenance
-                    </span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+            <div className="space-y-1 border-t border-border pt-3">
+              <p className="mb-1 text-sm font-medium text-foreground">Maintenance Alert</p>
+              {rental.maintenanceAssets.map((a) => (
+                <div key={a.id} className="flex items-center gap-2 text-sm">
+                  <AlertTriangle className="size-3.5 text-chart-warning" />
+                  <span>
+                    {a.name} ({a.asset_code}) — currently under maintenance
+                  </span>
+                </div>
+              ))}
+            </div>
           )}
+        </CardContent>
+      </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Rental Receivables</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AgingTable bucket={rental.rentalReceivables} />
-            </CardContent>
-          </Card>
-        </TabsContent>
+      <Card className="border-primary/20 bg-primary/[0.04]">
+        <CardHeader>
+          <CardTitle className="text-base">AI Rental Insight</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-foreground">{rentalInsight ?? 'Loading...'}</p>
+        </CardContent>
+      </Card>
 
-        {/* ================= CUSTOMERS & INVENTORY TAB ================= */}
-        <TabsContent value="customers" className="mt-4 space-y-4">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Top Customers by Revenue</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1.5">
-                {customerStats.topByRevenue.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No invoiced customers yet.</p>
-                ) : (
-                  customerStats.topByRevenue.map((c) => <Row key={c.name} label={c.name} value={fmt(c.revenue)} />)
-                )}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Top Customers by Outstanding</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1.5">
-                {customerStats.topByOutstanding.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No outstanding balances.</p>
-                ) : (
-                  customerStats.topByOutstanding.map((c) => <Row key={c.name} label={c.name} value={fmt(c.outstanding)} />)
-                )}
-              </CardContent>
-            </Card>
-          </div>
-          <KpiCard label={`New Customers (${DASHBOARD_PERIOD_LABELS[period]})`} value={String(customerStats.newCustomers)} />
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Package className="size-4" /> Inventory Alerts
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">Material-to-job linkage isn't tracked yet, so job-specific shortage alerts aren't available -- showing stock-level alerts only.</p>
-            </CardHeader>
-            <CardContent className="space-y-1.5">
-              {(stockAlerts ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">No products at or below reorder level.</p>
-              ) : (
-                (stockAlerts ?? []).map((s) => (
-                  <div key={s.product_id} className="flex items-center justify-between text-sm">
-                    <span>
-                      {s.name} <span className="text-xs text-muted-foreground">({s.sku})</span>
-                    </span>
-                    <Badge variant={s.quantity <= 0 ? 'destructive' : 'outline'}>
-                      {s.quantity} in stock (reorder at {s.reorder_level})
-                    </Badge>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
+      {/* ---------- Ask TransformerFlow AI ---------- */}
       <AskAiBox />
+
+      <div className="flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
+        <span>Last updated: {new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+        <span>All data is live and reflects actual business transactions.</span>
+      </div>
     </div>
   )
 }
 
-function KpiCard({ label, value, sub, tone, icon: Icon, muted }: { label: string; value: string; sub?: string; tone?: 'good' | 'bad'; icon?: typeof Wrench; muted?: boolean }) {
+function KpiCard({
+  label,
+  value,
+  sub,
+  tone,
+  icon: Icon,
+  iconColor,
+  muted,
+  trendPct,
+  invertTrendColor,
+  sparkline,
+}: {
+  label: string
+  value: string
+  sub?: string
+  tone?: 'good' | 'bad'
+  icon?: typeof Wrench
+  iconColor?: string
+  muted?: boolean
+  trendPct?: number | null
+  invertTrendColor?: boolean
+  sparkline?: number[]
+}) {
+  const trendIsGood = trendPct == null ? null : invertTrendColor ? trendPct <= 0 : trendPct >= 0
   return (
     <Card>
-      <CardContent className="space-y-1 py-4">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          {Icon && <Icon className="size-3.5" />}
-          {label}
+      <CardContent className="space-y-2 py-4">
+        <div className="flex items-center justify-between">
+          {Icon && (
+            <span className="flex size-8 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in oklab, ${iconColor} 15%, transparent)` }}>
+              <Icon className="size-4" style={{ color: iconColor }} />
+            </span>
+          )}
+          {trendPct != null && (
+            <span className={`flex items-center gap-0.5 text-xs font-medium ${trendIsGood ? 'text-chart-success' : 'text-chart-critical'}`}>
+              {trendPct >= 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
+              {Math.abs(trendPct).toFixed(1)}%
+            </span>
+          )}
         </div>
-        <p className={`text-xl font-semibold ${muted ? 'text-muted-foreground' : tone === 'good' ? 'text-chart-success' : tone === 'bad' ? 'text-chart-critical' : 'text-foreground'}`}>{value}</p>
-        {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+        <div>
+          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className={`text-xl font-semibold ${muted ? 'text-muted-foreground' : tone === 'good' ? 'text-chart-success' : tone === 'bad' ? 'text-chart-critical' : 'text-foreground'}`}>{value}</p>
+          {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+        </div>
+        {sparkline && sparkline.length > 1 && <Sparkline values={sparkline} positive={trendIsGood ?? true} />}
       </CardContent>
     </Card>
   )
 }
 
-function Row({ label, value, bold, small }: { label: string; value: string; bold?: boolean; small?: boolean }) {
+/** Minimal dependency-free SVG sparkline -- only rendered when we actually have a real
+ * multi-month series behind it (revenue/expense/profit), never fabricated for point-in-time
+ * balances like receivables/payables/cash. */
+function Sparkline({ values, positive }: { values: number[]; positive: boolean }) {
+  const width = 100
+  const height = 24
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min || 1
+  const points = values.map((v, i) => `${(i / (values.length - 1)) * width},${height - ((v - min) / range) * height}`).join(' ')
   return (
-    <div className={`flex items-center justify-between ${small ? 'text-xs' : 'text-sm'}`}>
+    <svg viewBox={`0 0 ${width} ${height}`} className="h-6 w-full" preserveAspectRatio="none">
+      <polyline points={points} fill="none" stroke={positive ? 'var(--chart-success)' : 'var(--chart-critical)'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function StatTile({ label, value, tone, icon: Icon, iconColor, muted }: { label: string; value: string; tone?: 'bad'; icon?: typeof Wrench; iconColor?: string; muted?: boolean }) {
+  return (
+    <div className="rounded-lg border border-border bg-card/50 p-2.5">
+      <div className="flex items-center gap-1.5">
+        {Icon && (
+          <span className="flex size-5 items-center justify-center rounded-md" style={{ backgroundColor: `color-mix(in oklab, ${iconColor} 15%, transparent)` }}>
+            <Icon className="size-3" style={{ color: iconColor }} />
+          </span>
+        )}
+        <span className="truncate text-xs text-muted-foreground">{label}</span>
+      </div>
+      <p className={`mt-1 text-lg font-semibold ${muted ? 'text-muted-foreground' : tone === 'bad' ? 'text-chart-critical' : 'text-foreground'}`}>{value}</p>
+    </div>
+  )
+}
+
+function Row({ label, value, bold, tone }: { label: string; value: string; bold?: boolean; tone?: 'good' | 'bad' }) {
+  return (
+    <div className="flex items-center justify-between text-sm">
       <span className="text-muted-foreground">{label}</span>
-      <span className={bold ? 'font-semibold text-foreground' : 'text-foreground'}>{value}</span>
+      <span className={bold ? `font-semibold ${tone === 'good' ? 'text-chart-success' : tone === 'bad' ? 'text-chart-critical' : 'text-foreground'}` : 'text-foreground'}>{value}</span>
     </div>
   )
 }

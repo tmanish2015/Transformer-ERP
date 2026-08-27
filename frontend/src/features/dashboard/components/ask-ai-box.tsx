@@ -6,17 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { askAssistant } from '@/features/ai/api/ai-api'
 
-const SUGGESTED_QUESTIONS = [
-  'How much profit did we make this month?',
-  'Which repair jobs are losing money?',
-  'Who owes us the most money?',
-  'Which jobs are delayed?',
-  'What were our biggest expenses this month?',
-  'Which customers generated the most revenue?',
-  'How is machine rental performing?',
-  'Which machines are under-utilised?',
-  'What needs my attention today?',
-]
+const SUGGESTED_QUESTIONS = ['What needs my attention today?', 'Which jobs are most profitable?', 'Who owes us the most?', 'How is machine rental performing?']
 
 /** Embeds the same whitelisted-intent AI Assistant edge function used by the full AI
  * Assistant page -- no second AI engine, just a lighter single-question entry point. */
@@ -55,7 +45,7 @@ export function AskAiBox() {
             void ask(question)
           }}
         >
-          <Input placeholder="Ask about revenue, jobs, receivables, rentals..." value={question} onChange={(e) => setQuestion(e.target.value)} />
+          <Input placeholder="Ask anything about your business..." value={question} onChange={(e) => setQuestion(e.target.value)} />
           <Button type="submit" disabled={asking || !question.trim()}>
             {asking ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
           </Button>

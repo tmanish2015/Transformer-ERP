@@ -1,7 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import type {
   DashboardBill,
-  DashboardCustomer,
   DashboardInvoice,
   DashboardRentalAssetLookup,
   DashboardRentalAsset,
@@ -147,10 +146,4 @@ export async function fetchDashboardStockAlerts(): Promise<DashboardStockAlert[]
       reorder_level: p.reorder_level,
     }))
     .filter((p) => p.quantity <= p.reorder_level)
-}
-
-export async function fetchDashboardCustomers(): Promise<DashboardCustomer[]> {
-  const { data, error } = await supabase.from('customers').select('id, name, created_at')
-  if (error) throw error
-  return data ?? []
 }

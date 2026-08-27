@@ -89,9 +89,3 @@ export interface DashboardStockAlert {
   quantity: number
   reorder_level: number
 }
-
-export interface DashboardCustomer {
-  id: string
-  name: string
-  created_at: string
-}

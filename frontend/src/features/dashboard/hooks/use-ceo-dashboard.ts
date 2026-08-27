@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   fetchDashboardBills,
-  fetchDashboardCustomers,
   fetchDashboardEstimatesAwaitingApproval,
   fetchDashboardInvoices,
   fetchDashboardRentalAssetLookup,
@@ -43,8 +42,4 @@ export function useDashboardRentalBookings() {
 
 export function useDashboardStockAlerts() {
   return useQuery({ queryKey: [KEY, 'stock-alerts'], queryFn: fetchDashboardStockAlerts })
-}
-
-export function useDashboardCustomers() {
-  return useQuery({ queryKey: [KEY, 'customers'], queryFn: fetchDashboardCustomers })
 }
