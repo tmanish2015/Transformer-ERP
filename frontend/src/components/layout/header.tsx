@@ -24,6 +24,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/finance': 'Financial Dashboard',
   '/finance/accounts': 'Chart of Accounts',
   '/finance/journal-entries': 'Journal Entries',
+  '/finance/expenses': 'Expenses',
   '/finance/reports': 'Financial Reports',
   '/purchases': 'Purchase Dashboard',
   '/purchases/orders': 'Purchase Orders',

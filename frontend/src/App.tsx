@@ -38,6 +38,7 @@ const MovementsPage = lazy(() => import('@/features/inventory/pages/movements-pa
 const FinanceDashboardPage = lazy(() => import('@/features/finance/pages/finance-dashboard-page').then((m) => ({ default: m.FinanceDashboardPage })))
 const ChartOfAccountsPage = lazy(() => import('@/features/finance/pages/chart-of-accounts-page').then((m) => ({ default: m.ChartOfAccountsPage })))
 const JournalEntriesPage = lazy(() => import('@/features/finance/pages/journal-entries-page').then((m) => ({ default: m.JournalEntriesPage })))
+const ExpensesPage = lazy(() => import('@/features/finance/pages/expenses-page').then((m) => ({ default: m.ExpensesPage })))
 const FinancialReportsPage = lazy(() => import('@/features/finance/pages/financial-reports-page').then((m) => ({ default: m.FinancialReportsPage })))
 const PurchaseDashboardPage = lazy(() => import('@/features/purchases/pages/purchase-dashboard-page').then((m) => ({ default: m.PurchaseDashboardPage })))
 const PurchaseOrdersPage = lazy(() => import('@/features/purchases/pages/purchase-orders-page').then((m) => ({ default: m.PurchaseOrdersPage })))
@@ -247,6 +248,14 @@ function App() {
                             element={
                               <RequirePermission permission="finance.view">
                                 <JournalEntriesPage />
+                              </RequirePermission>
+                            }
+                          />
+                          <Route
+                            path="finance/expenses"
+                            element={
+                              <RequirePermission permission="finance.view">
+                                <ExpensesPage />
                               </RequirePermission>
                             }
                           />

@@ -551,6 +551,32 @@ companies: {
           { foreignKeyName: 'journal_entry_lines_account_id_fkey'; columns: ['account_id']; referencedRelation: 'chart_of_accounts'; referencedColumns: ['id']; isOneToOne: false },
         ]
       }
+      expenses: {
+        Row: {
+          id: string
+          company_id: string
+          expense_number: string
+          expense_date: string
+          category_id: string
+          description: string
+          supplier_id: string | null
+          payee_name: string | null
+          repair_job_id: string | null
+          amount: number
+          payment_method: string
+          reference_number: string | null
+          notes: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['expenses']['Row']> & { category_id: string; description: string; amount: number; payment_method: string }
+        Update: Partial<Database['public']['Tables']['expenses']['Row']>
+        Relationships: [
+          { foreignKeyName: 'expenses_category_id_fkey'; columns: ['category_id']; referencedRelation: 'chart_of_accounts'; referencedColumns: ['id']; isOneToOne: false },
+          { foreignKeyName: 'expenses_supplier_id_fkey'; columns: ['supplier_id']; referencedRelation: 'suppliers'; referencedColumns: ['id']; isOneToOne: false },
+          { foreignKeyName: 'expenses_repair_job_id_fkey'; columns: ['repair_job_id']; referencedRelation: 'repair_jobs'; referencedColumns: ['id']; isOneToOne: false },
+        ]
+      }
       purchase_orders: {
         Row: {
           id: string

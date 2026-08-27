@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase'
-import type { AccountFormValues, JournalEntryFormValues } from '@/features/finance/schemas/finance-schemas'
-import type { JournalEntryLineWithAccount, JournalEntryWithLines } from '@/features/finance/types/finance-types'
+import type { AccountFormValues, ExpenseFormValues, JournalEntryFormValues } from '@/features/finance/schemas/finance-schemas'
+import type { ExpenseWithRelations, JournalEntryLineWithAccount, JournalEntryWithLines } from '@/features/finance/types/finance-types'
 
 // ---------- Chart of Accounts ----------
 
@@ -120,3 +120,41 @@ export async function cancelJournalEntry(id: string) {
   const { error } = await supabase.from('journal_entries').update({ status: 'cancelled' }).eq('id', id)
   if (error) throw error
 }
+
+// ---------- Expenses ----------
+
+export async function fetchExpenses(): Promise<ExpenseWithRelations[]> {
+  const { data, error } = await supabase
+    .from('expenses')
+    .select('*, category:chart_of_accounts(id,code,name), supplier:suppliers(id,name), repair_job:repair_jobs(id,job_number)')
+    .order('expense_date', { ascending: false })
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data as unknown as ExpenseWithRelations[]
+}
+
+export async function createExpense(values: ExpenseFormValues, createdBy: string) {
+  const { data, error } = await supabase
+    .from('expenses')
+    .insert({
+      expense_date: values.expense_date,
+      category_id: values.category_id,
+      description: values.description,
+      supplier_id: values.supplier_id || null,
+      payee_name: values.payee_name || null,
+      repair_job_id: values.repair_job_id || null,
+      amount: values.amount,
+      payment_method: values.payment_method,
+      reference_number: values.reference_number || null,
+      notes: values.notes || null,
+      created_by: createdBy,
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+// No update/delete: like purchase_payments and sales_payments, an expense auto-posts to the
+// ledger on insert (see post_expense_to_ledger trigger) and is immutable afterward -- editing
+// or deleting it here would desync from the already-posted journal entry.

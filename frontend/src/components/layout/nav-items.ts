@@ -173,6 +173,7 @@ export const navSections: NavSection[] = [
           { label: 'Dashboard', to: '/finance' },
           { label: 'Chart of Accounts', to: '/finance/accounts' },
           { label: 'Journal Entries', to: '/finance/journal-entries' },
+          { label: 'Expenses', to: '/finance/expenses' },
           { label: 'Financial Reports', to: '/finance/reports' },
         ],
       },

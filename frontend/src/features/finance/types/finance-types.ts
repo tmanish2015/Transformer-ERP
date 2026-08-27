@@ -3,6 +3,7 @@ import type { Tables } from '@/types/database.types'
 export type ChartOfAccount = Tables<'chart_of_accounts'>
 export type JournalEntry = Tables<'journal_entries'>
 export type JournalEntryLine = Tables<'journal_entry_lines'>
+export type Expense = Tables<'expenses'>
 
 export type AccountType = 'asset' | 'liability' | 'equity' | 'income' | 'expense'
 export type VoucherType = 'journal' | 'receipt' | 'payment' | 'contra'
@@ -59,4 +60,21 @@ export interface JournalEntryLineWithAccount extends JournalEntryLine {
 
 export interface JournalEntryWithLines extends JournalEntry {
   lines: JournalEntryLineWithAccount[]
+}
+
+export const EXPENSE_PAYMENT_METHODS = ['cash', 'bank', 'cheque', 'upi', 'card'] as const
+export type ExpensePaymentMethod = (typeof EXPENSE_PAYMENT_METHODS)[number]
+
+export const EXPENSE_PAYMENT_METHOD_LABELS: Record<ExpensePaymentMethod, string> = {
+  cash: 'Cash',
+  bank: 'Bank Transfer',
+  cheque: 'Cheque',
+  upi: 'UPI',
+  card: 'Card',
+}
+
+export interface ExpenseWithRelations extends Expense {
+  category: { id: string; code: string; name: string }
+  supplier: { id: string; name: string } | null
+  repair_job: { id: string; job_number: string } | null
 }

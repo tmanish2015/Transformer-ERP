@@ -47,3 +47,18 @@ export const journalEntrySchema = z
   )
 export type JournalEntryFormValues = z.infer<typeof journalEntrySchema>
 export type JournalEntryFormInput = z.input<typeof journalEntrySchema>
+
+export const expenseSchema = z.object({
+  expense_date: z.string().min(1, 'Date is required'),
+  category_id: z.string().min(1, 'Category is required'),
+  description: z.string().min(1, 'Description is required'),
+  supplier_id: z.string().optional().or(z.literal('')),
+  payee_name: z.string().optional().or(z.literal('')),
+  repair_job_id: z.string().optional().or(z.literal('')),
+  amount: z.coerce.number().positive('Amount must be greater than zero'),
+  payment_method: z.enum(['cash', 'bank', 'cheque', 'upi', 'card']),
+  reference_number: z.string().optional().or(z.literal('')),
+  notes: z.string().optional().or(z.literal('')),
+})
+export type ExpenseFormValues = z.infer<typeof expenseSchema>
+export type ExpenseFormInput = z.input<typeof expenseSchema>
