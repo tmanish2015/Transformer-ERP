@@ -1,8 +1,8 @@
--- Licensing engine RLS + permission keys. Ported verbatim from Tradeflow (same table
--- set, same view/manage two-tier convention, same do-block policy generator). These
--- tables are the vendor's own catalogue/tenant-registry, not per-tenant operational
--- data, so they are NOT company_id-scoped like every other module's tables will be —
--- access to them is has_permission('licensing.*') only, same as Tradeflow.
+-- Licensing engine RLS + permission keys, following the same view/manage two-tier
+-- convention and do-block policy generator as every other module. These tables are the
+-- vendor's own catalogue/tenant-registry, not per-tenant operational data, so they are
+-- NOT company_id-scoped like every other module's tables will be — access to them is
+-- has_permission('licensing.*') only.
 
 insert into public.permissions (key, module, description) values
   ('licensing.view', 'licensing', 'View plans, modules, features, add-ons, industry packs, and customers'),

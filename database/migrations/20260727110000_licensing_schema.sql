@@ -1,10 +1,8 @@
 -- Migration: licensing_schema (20260727110000)
--- Ported wholesale from Tradeflow-ai-ERP's licensing engine (plans/modules/features/
--- addons/customers/subscriptions/entitlements/licenses/logs). One structural change:
--- Tradeflow links its single-row company_settings to license_customers via a text
--- license_key (necessary there, since it's one Supabase project per customer). Here,
--- companies IS the tenant registry already, so license_customers has a direct 1:1
--- company_id FK instead — no separate key-based linking needed.
+-- TransformerFlow's licensing engine (plans/modules/features/addons/customers/
+-- subscriptions/entitlements/licenses/logs). Since TransformerFlow's `companies` table
+-- IS the tenant registry already, license_customers has a direct 1:1 company_id FK —
+-- no separate license-key-based linking is needed to resolve a tenant.
 
 create table public.plans (
   id uuid primary key default gen_random_uuid(),

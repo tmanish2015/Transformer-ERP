@@ -1,7 +1,7 @@
 -- Migration: purchases_business_logic_triggers (20260730090500)
--- Ported verbatim from Tradeflow's purchase_business_logic_triggers — no tenant-scoping
--- changes needed here, since every statement operates by id (already tenant-scoped via
--- the row it's given) rather than by a bare company-wide query.
+-- No explicit company_id filtering is needed in these trigger bodies, since every
+-- statement operates by id (already tenant-scoped via the row it's given) rather than
+-- by a bare company-wide query.
 
 create or replace function public.recompute_po_totals()
 returns trigger

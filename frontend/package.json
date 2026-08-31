@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "check:isolation": "node ../scripts/check-tradeflow-isolation.mjs",
+    "prebuild": "npm run check:isolation",
     "build": "tsc -b && vite build",
     "build:web": "tsc -b && cross-env DEPLOY_TARGET=web vite build",
     "lint": "oxlint",

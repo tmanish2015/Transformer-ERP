@@ -1,5 +1,6 @@
--- Licensing seed data for Transformer-AI-ERP (replaces Tradeflow's hardware-sales seed).
--- Modules correspond 1:1 to features/<slug> folders (see docs-architecture/02-feature-mapping.md).
+-- Licensing seed data for Transformer-AI-ERP: modules, industry packs, and plans built
+-- for the transformer repair/rental/manufacturing industry. Modules correspond 1:1 to
+-- features/<slug> folders (see docs-architecture/02-feature-mapping.md).
 
 insert into public.modules (code, name, category, sequence, description) values
   ('crm', 'CRM', 'core', 10, 'Leads, customers, site surveys, quotations, AMC contracts'),

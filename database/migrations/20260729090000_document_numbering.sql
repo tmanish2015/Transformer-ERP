@@ -2,11 +2,11 @@
 --
 -- Generic per-company sequential document numbering, used by every module that needs
 -- one (journal entries now; purchase orders, invoices, repair job cards, rental
--- agreements, etc. in later sprints — see docs-architecture/09-api-design.md). Tradeflow
--- uses a plain Postgres sequence per document type since it's one project per customer;
--- that would make numbers jump unpredictably across companies here (company B's first
--- journal entry might read "JE-000047"), so this uses a per-(company, sequence_key)
--- counter table with an atomic upsert instead.
+-- agreements, etc. in later sprints — see docs-architecture/09-api-design.md). A plain
+-- Postgres sequence per document type would make numbers jump unpredictably across
+-- companies in a shared multi-tenant database (company B's first journal entry might
+-- read "JE-000047"), so this uses a per-(company, sequence_key) counter table with an
+-- atomic upsert instead.
 
 create table public.document_sequences (
   company_id uuid not null references public.companies(id) default public.current_company_id(),

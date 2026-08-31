@@ -1,14 +1,14 @@
 -- Migration: inventory_schema (20260728090000)
--- Ported from Tradeflow-ai-ERP's inventory_schema + warehouse_management_schema
--- migrations. Every table gains company_id (see companies_and_tenant_scoping migration);
--- previously-global unique constraints (sku, short_code, warehouse code) become
--- per-company uniques. Two additions beyond the reference: serial_numbers (individually
--- tracked transformer units) and scrap_entries — see docs-architecture/03-database-design.md.
+-- TransformerFlow's inventory + warehouse management schema. Every table gains
+-- company_id (see companies_and_tenant_scoping migration); unique constraints (sku,
+-- short_code, warehouse code) are per-company uniques, not global. Includes
+-- serial_numbers (individually tracked transformer units) and scrap_entries — see
+-- docs-architecture/03-database-design.md.
 --
--- company_id defaults to current_company_id() on every table: client code (ported
--- verbatim from Tradeflow, e.g. features/inventory/api/lookup-api.ts) never sets it
--- explicitly on insert, so the column must populate itself. RLS's `with check` still
--- guards against a caller passing a different company_id outright.
+-- company_id defaults to current_company_id() on every table: client code (e.g.
+-- features/inventory/api/lookup-api.ts) never sets it explicitly on insert, so the
+-- column must populate itself. RLS's `with check` still guards against a caller passing
+-- a different company_id outright.
 
 create table public.units (
   id uuid primary key default gen_random_uuid(),
@@ -168,8 +168,8 @@ create table public.stock_movements (
   created_at timestamptz not null default now()
 );
 
--- Keep stock_levels (and batch quantity) in sync with movements. Locked down (only the
--- trigger can call it) same as Tradeflow's equivalent function.
+-- Keep stock_levels (and batch quantity) in sync with movements. Locked down so only the
+-- trigger can call it — movement history must always flow through the ledger function.
 create or replace function public.apply_stock_movement()
 returns trigger
 language plpgsql

@@ -1,7 +1,6 @@
--- Licensing engine RPC functions. Ported from Tradeflow with one signature change:
--- get_my_entitlements() takes no argument (Tradeflow's single-tenant-per-project model
--- required a license_key parameter; here the caller's tenant is already resolvable via
--- current_company_id(), since license_customers.company_id is a direct FK).
+-- Licensing engine RPC functions. get_my_entitlements() takes no argument: the caller's
+-- tenant is already resolvable via current_company_id(), since license_customers.company_id
+-- is a direct FK — no license-key parameter is needed to identify which company is asking.
 --
 -- Every write function manually re-checks has_permission('licensing.manage') in its
 -- body: these are security definer functions, so RLS is bypassed for their internal

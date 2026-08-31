@@ -1,6 +1,6 @@
 -- Migration: sales_crm_schema (20260731090000)
--- Ported from Tradeflow-ai-ERP's sales_numbering_and_masters + sales_transaction_tables +
--- sales_invoicing_tables migrations. Scope trimmed to base CRM + base Sales per
+-- TransformerFlow's sales + CRM schema (numbering/masters, transaction tables,
+-- invoicing tables). Scope trimmed to base CRM + base Sales per
 -- docs-architecture/02-feature-mapping.md — salespersons, delivery_terms, price_lists,
 -- discount_rules, credit_notes, and the full CRM extension set (customer_groups,
 -- opportunities, support_tickets, customer_contacts/activities/tasks/attachments) are

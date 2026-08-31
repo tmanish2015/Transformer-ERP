@@ -13,8 +13,8 @@ Pattern unchanged from Tradeflow §10: `api/*.ts` files do `supabase.from('table
 | `next_repair_job_number()`, `next_rental_agreement_number()`, `next_test_certificate_number()`, `next_production_order_number()` | Document numbering sequences | Same pattern as Tradeflow's `next_po_number()` |
 | `transition_repair_job_stage(job_id, new_stage)` | Enforce legal stage transitions (Risk #5), write `repair_job_stage_history` row | `security definer`, revoke-all-then-grant-to-authenticated |
 | `transition_rental_asset_status(asset_id, new_status, ...)` | Same for rental lifecycle | Same pattern |
-| `get_my_entitlements(p_license_key)` | Licensing — reused verbatim from Tradeflow | Reused verbatim |
-| `can_activate_module`, `apply_plan_defaults`, `activate_customer`/`suspend_customer`/etc. | Licensing lifecycle — reused verbatim | Reused verbatim |
+| `get_my_entitlements()` | Licensing — resolves the caller's tenant via `current_company_id()`, no argument (revised from the original plan of a `p_license_key` parameter once `companies` became the tenant registry — see `licensing_rpc_functions.sql`) | Implemented, no-arg |
+| `can_activate_module`, `apply_plan_defaults`, `activate_customer`/`suspend_customer`/etc. | Licensing lifecycle functions | Implemented |
 | `calculate_rental_invoice(agreement_id)` | Compute rental charges (base + late-return + operator + fuel + transport) at invoice time | `security definer`, called from sales-invoice creation flow |
 | `explode_bom(bom_id, qty)` | Compute raw material requirement for a production order | `stable security definer` (read-only) |
 

@@ -1,12 +1,10 @@
 -- Migration: sales_gl_posting (20260731091000)
 --
--- Built directly in the shape Tradeflow only reached after a real production bug: its
--- original post_sales_invoice_to_ledger() fired AFTER INSERT ON sales_invoices, before
--- line items (and therefore the real subtotal/tax_total/total, computed by
--- trg_recompute_sales_invoice_totals) existed — every invoice posted to the ledger at
--- zero. Tradeflow's fix (see its fix_sales_invoice_gl_posting_timing migration) replaced
--- the trigger with an explicit, idempotent function the application calls once line
--- items are confirmed inserted. Adopting that shape from the start here.
+-- Built as an explicit, idempotent function the application calls once line items are
+-- confirmed inserted, rather than as an AFTER INSERT ON sales_invoices trigger — a
+-- trigger firing before line items exist would post to the ledger before the real
+-- subtotal/tax_total/total (computed by trg_recompute_sales_invoice_totals) is known,
+-- posting every invoice at zero.
 --
 -- sales_payments has no separate line-items step (the amount is present on the row at
 -- insert time), so post_sales_payment_to_ledger is a plain AFTER INSERT trigger — same

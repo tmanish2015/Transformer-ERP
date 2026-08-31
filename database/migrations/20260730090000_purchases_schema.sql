@@ -1,8 +1,8 @@
 -- Migration: purchases_schema (20260730090000)
--- Ported from Tradeflow-ai-ERP's purchase_schema migration. Document numbering uses the
--- generic next_document_number() (see document_numbering migration) instead of Tradeflow's
--- per-type global sequences — same reasoning as journal entries: a plain sequence would
--- make numbers jump unpredictably across companies. Tenant scoping added throughout.
+-- TransformerFlow's purchases schema. Document numbering uses the generic
+-- next_document_number() (see document_numbering migration) instead of per-type global
+-- sequences — same reasoning as journal entries: a plain sequence would make numbers
+-- jump unpredictably across companies. Tenant scoping applied throughout.
 
 create table public.purchase_orders (
   id uuid primary key default gen_random_uuid(),

@@ -1,7 +1,8 @@
 -- Migration: auth_rbac_schema (20260727100500)
--- Ported from Tradeflow-ai-ERP's auth_rbac_schema + add_unassigned_role_for_self_signup
--- migrations, adapted for multi-tenant: profiles gain company_id, and current_company_id()
--- is added alongside has_permission() as the second building block every RLS policy uses.
+-- TransformerFlow's role-based access control foundation: profiles carry company_id,
+-- and current_company_id() is added alongside has_permission() as the second building
+-- block every RLS policy uses. Self-registered accounts start on the 'unassigned' role
+-- until an admin assigns a real one (see add_unassigned_role_for_self_signup below).
 
 -- Roles (global catalogue, not per-tenant — every company shares the same role/permission
 -- catalogue; what differs per tenant is which profiles hold which role)
@@ -171,7 +172,7 @@ create policy "Update own company with settings.manage" on public.companies
   using (id = public.current_company_id() and public.has_permission('settings.manage'))
   with check (id = public.current_company_id() and public.has_permission('settings.manage'));
 
--- Seed roles (transformer-industry set, replacing Tradeflow's hardware-sales roles)
+-- Seed roles (TransformerFlow's transformer-industry role set)
 insert into public.roles (key, name, description) values
   ('unassigned', 'Unassigned', 'Self-registered account with no permissions yet; an admin must assign a real role before this user can access any module.'),
   ('super_admin', 'Super Admin', 'Full unrestricted access to the entire system (vendor-side, across the licensing schema)'),

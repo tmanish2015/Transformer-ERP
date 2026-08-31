@@ -60,7 +60,7 @@ end $$;
 
 -- stock_movements is an append-only audit ledger — select + insert only, no update/delete
 -- policy at all (not even for inventory.manage), so movement history can never be tampered
--- with via the client, matching Tradeflow's original inventory_rls_and_permissions intent.
+-- with via the client.
 create policy "stock_movements_select" on public.stock_movements
   for select to authenticated using (company_id = public.current_company_id() and public.has_permission('inventory.view'));
 create policy "stock_movements_insert" on public.stock_movements

@@ -1,9 +1,9 @@
 -- Migration: finance_schema (20260729090500)
--- Ported from Tradeflow-ai-ERP's finance_accounts_schema migration: chart of accounts +
--- unified journal entry voucher (journal/receipt/payment/contra, Tally-style). Tenant
--- scoping added per docs-architecture/03-database-design.md §0. Debit/credit notes, TDS
--- entries, and bank reconciliation are deferred — they reference purchase_bills /
--- sales_invoices, which don't exist until the Purchases/Sales sprints.
+-- TransformerFlow's finance schema: chart of accounts + unified journal entry voucher
+-- (journal/receipt/payment/contra, Tally-style), tenant-scoped per
+-- docs-architecture/03-database-design.md §0. Debit/credit notes, TDS entries, and bank
+-- reconciliation are deferred — they reference purchase_bills / sales_invoices, which
+-- don't exist until the Purchases/Sales sprints.
 
 create table public.chart_of_accounts (
   id uuid primary key default gen_random_uuid(),

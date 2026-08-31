@@ -1,6 +1,6 @@
 -- Migration: sales_business_logic_triggers (20260731090500)
--- Ported verbatim from Tradeflow's sales_business_logic_triggers — no tenant-scoping
--- changes needed, same reasoning as purchases: every statement operates by id.
+-- No explicit company_id filtering needed here, same reasoning as purchases: every
+-- statement operates by id (already tenant-scoped via the row it's given).
 
 create or replace function public.recompute_quotation_totals()
 returns trigger

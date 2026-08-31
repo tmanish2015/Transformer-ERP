@@ -1,9 +1,9 @@
 -- Migration: sales_rls_and_permissions (20260731091500)
 -- Same two-tier convention + tenant-scoped policy generator as every other module.
--- customers lives under sales.view/sales.manage (matches Tradeflow — customer master is
--- a sales dependency, not a separate CRM permission, since the CRM-extension tables
+-- customers lives under sales.view/sales.manage — customer master is a sales
+-- dependency, not a separate CRM permission, since the CRM-extension tables
 -- (opportunities, tickets, contacts, activities) that would justify a distinct crm.*
--- permission are deferred to Phase 5).
+-- permission are deferred to Phase 5.
 
 insert into public.permissions (key, module, description) values
   ('sales.view', 'sales', 'View customers, quotations, sales orders, deliveries, invoices, and payments'),

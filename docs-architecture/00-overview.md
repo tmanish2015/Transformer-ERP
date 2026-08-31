@@ -1,6 +1,14 @@
 # Transformer-AI-ERP — Architecture Package
 
-Reference project: `C:\Projects\tradeflow-ai-erp` (engineering patterns only — not a business-logic source; see [Reference Architecture Survey] embedded in project memory / this session).
+> **Historical note (post-launch):** the porting phase this document describes is complete —
+> all 84 migrations exist in `database/migrations/`. TransformerFlow and TradeFlow are sister
+> products under Insignia Tech; the reuse recorded below was an authorized, one-time
+> foundation-building decision, not an ongoing dependency. This file (and the rest of
+> `docs-architecture/`) is kept as historical planning record. Do not treat the path below as
+> a live source to copy further code from — new TransformerFlow work should build on what's
+> already in this repository, not on the reference project.
+
+Reference project (historical, foundation phase only): `C:\Projects\tradeflow-ai-erp` (engineering patterns only — not a business-logic source; see [Reference Architecture Survey] embedded in project memory / this session).
 
 This folder contains the 10 planning artifacts required before any code is written, per project directive:
 

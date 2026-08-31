@@ -1,11 +1,10 @@
 -- Migration: finance_seed_function (20260729092000)
 --
--- Tradeflow seeds its chart of accounts as a one-time migration INSERT, because there's
--- only ever one company (single-tenant-per-project). That approach can't work here: a
--- migration runs once at deploy time, but every company that signs up afterward also
--- needs its own copy of the standard chart of accounts. So this is a function, called
--- once per company at signup (see wire_signup_to_finance_seed migration) instead of a
--- one-shot data migration.
+-- A one-time migration INSERT can't seed the chart of accounts here: a migration runs
+-- once at deploy time, but every company that signs up afterward also needs its own copy
+-- of the standard chart of accounts in this shared multi-tenant database. So this is a
+-- function, called once per company at signup (see wire_signup_to_finance_seed
+-- migration) instead of a one-shot data migration.
 
 create or replace function public.seed_default_chart_of_accounts(p_company_id uuid)
 returns void

@@ -1,10 +1,10 @@
 -- Migration: purchases_auto_posting_triggers (20260730091000)
 --
 -- Deferred from the Finance sprint (Sprint 4) because these triggers fire on
--- purchase_bills/purchase_payments, which didn't exist yet. Ported from Tradeflow's
--- finance_auto_posting_triggers migration, tenant-scoped: chart_of_accounts lookups filter
--- by `new.company_id` (the row being inserted already carries the correct tenant) rather
--- than by code alone, since account codes like '2001' are only unique per company.
+-- purchase_bills/purchase_payments, which didn't exist yet. Tenant-scoped:
+-- chart_of_accounts lookups filter by `new.company_id` (the row being inserted already
+-- carries the correct tenant) rather than by code alone, since account codes like '2001'
+-- are only unique per company.
 
 create or replace function public.post_purchase_bill_to_ledger()
 returns trigger
