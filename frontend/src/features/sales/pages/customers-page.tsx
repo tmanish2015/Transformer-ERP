@@ -5,12 +5,14 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { Loader2, MoreHorizontal, Pencil, Plus, Trash2, Users } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
 import { EmptyState } from '@/components/shared/empty-state'
+import { StatusBadge } from '@/components/shared/status-badge'
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog'
 import { DataTable } from '@/components/data-table/data-table'
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -179,6 +181,7 @@ export function CustomersPage() {
 
   const { data, isLoading } = useCustomers()
   const createCustomer = useCreateCustomer()
+  const updateCustomer = useUpdateCustomer()
   const deleteCustomer = useDeleteCustomer()
   const deleteAllCustomers = useDeleteAllCustomers()
 
@@ -187,11 +190,12 @@ export function CustomersPage() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null)
 
-  // Active customers always float to the top, ahead of leads/prospects/inactive --
-  // a stable sort so everything else (the existing order from the query) is
-  // untouched within each group.
+  // Active customers always float to the top, ahead of inactive -- a stable
+  // sort so everything else (the existing order from the query) is untouched
+  // within each group. Driven by is_active so toggling a row re-sorts it
+  // immediately on the next render.
   const sortedData = useMemo(
-    () => [...(data ?? [])].sort((a, b) => Number(b.status === 'active') - Number(a.status === 'active')),
+    () => [...(data ?? [])].sort((a, b) => Number(b.is_active) - Number(a.is_active)),
     [data],
   )
 
@@ -219,6 +223,22 @@ const columns: ColumnDef<Customer>[] = [
     { accessorKey: 'billing_address', header: 'Billing Address', cell: ({ row }) => row.original.billing_address || <span className="text-muted-foreground">—</span> },
     { accessorKey: 'state', header: 'State', cell: ({ row }) => row.original.state || <span className="text-muted-foreground">—</span> },
     { accessorKey: 'pincode', header: 'PIN Code', cell: ({ row }) => row.original.pincode || <span className="text-muted-foreground">—</span> },
+    {
+      id: 'status',
+      header: 'Status',
+      cell: ({ row }) => (row.original.is_active ? <StatusBadge status="active" label="Active" /> : <StatusBadge status="inactive" label="Inactive" />),
+    },
+    {
+      id: 'is_active',
+      header: 'Enabled',
+      cell: ({ row }) => (
+        <Switch
+          checked={row.original.is_active}
+          disabled={!canManage}
+          onCheckedChange={(checked) => updateCustomer.mutate({ id: row.original.id, values: { is_active: checked } })}
+        />
+      ),
+    },
     {
       id: 'actions',
       cell: ({ row }) =>
