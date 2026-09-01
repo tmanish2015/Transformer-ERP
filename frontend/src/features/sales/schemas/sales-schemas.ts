@@ -1,36 +1,16 @@
 import { z } from 'zod'
 
-// GSTIN / PAN normalize to uppercase whenever typed; validation applies only when non-empty.
-const autoUpper = (v: string | undefined) => (v ? v.toUpperCase() : '')
-
-const gstinField = z
-  .string()
-  .optional()
-  .or(z.literal(''))
-  .transform(autoUpper)
-  .refine((v) => v === '' || /^[0-9A-Z]{15}$/.test(v), 'GSTIN must be exactly 15 alphanumeric characters')
-
-const panField = z
-  .string()
-  .optional()
-  .or(z.literal(''))
-  .transform(autoUpper)
-  .refine((v) => v === '' || /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(v), 'PAN must match format (e.g. ABCDE1234F)')
+export const CUSTOMER_TYPES = ['individual', 'business', 'government', 'psu'] as const
 
 export const customerSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  contact_person: z.string().optional().or(z.literal('')),
-  email: z.string().email('Invalid email').optional().or(z.literal('')),
-  phone: z.string().optional().or(z.literal('')),
-  billing_address: z.string().optional().or(z.literal('')),
-  shipping_address: z.string().optional().or(z.literal('')),
-  gstin: gstinField,
-  pan_number: panField,
-  state: z.string().optional().or(z.literal('')),
-  state_code: z.string().optional().or(z.literal('')),
-  credit_limit: z.coerce.number().min(0),
-  credit_days: z.coerce.number().min(0),
-  status: z.enum(['lead', 'prospect', 'active', 'inactive', 'churned']),
+  name: z.string().min(1, 'Customer is required'),
+  customer_type: z.enum(CUSTOMER_TYPES),
+  contact_person: z.string().min(1, 'Contact person is required'),
+  phone: z.string().min(1, 'Mobile is required'),
+  billing_address: z.string().min(1, 'Billing address is required'),
+  state: z.string().min(1, 'State is required'),
+  pincode: z.string().min(1, 'PIN code is required'),
+  logo_url: z.string().optional().or(z.literal('')),
 })
 export type CustomerFormValues = z.infer<typeof customerSchema>
 export type CustomerFormInput = z.input<typeof customerSchema>

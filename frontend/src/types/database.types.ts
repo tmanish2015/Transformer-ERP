@@ -726,6 +726,9 @@ billing_address: string | null
           status: string
           is_active: boolean
           created_at: string
+          customer_type: string
+          pincode: string | null
+          logo_url: string | null
         }
         Insert: Partial<Database['public']['Tables']['customers']['Row']> & { name: string }
         Update: Partial<Database['public']['Tables']['customers']['Row']>
@@ -859,6 +862,7 @@ billing_address: string | null
         Relationships: [
           { foreignKeyName: 'delivery_challan_items_delivery_challan_id_fkey'; columns: ['delivery_challan_id']; referencedRelation: 'delivery_challans'; referencedColumns: ['id']; isOneToOne: false },
           { foreignKeyName: 'delivery_challan_items_sales_order_item_id_fkey'; columns: ['sales_order_item_id']; referencedRelation: 'sales_order_items'; referencedColumns: ['id']; isOneToOne: false },
+          { foreignKeyName: 'delivery_challan_items_product_id_fkey'; columns: ['product_id']; referencedRelation: 'products'; referencedColumns: ['id']; isOneToOne: false },
         ]
       }
       sales_invoices: {
@@ -1147,6 +1151,10 @@ billing_address: string | null
           notes: string | null
           created_at: string
           updated_at: string
+          make: string | null
+          model: string | null
+          capacity: string | null
+          monthly_rental_rate: number
         }
         Insert: Partial<Database['public']['Tables']['rental_assets']['Row']> & { name: string }
         Update: Partial<Database['public']['Tables']['rental_assets']['Row']>

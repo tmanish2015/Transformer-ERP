@@ -1,44 +1,47 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Loader2, MoreHorizontal, Pencil, Plus, Trash2, Users } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
 import { EmptyState } from '@/components/shared/empty-state'
-import { StatusBadge } from '@/components/shared/status-badge'
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog'
 import { DataTable } from '@/components/data-table/data-table'
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { ImportExportToolbar, type ImportResult } from '@/components/shared/import-export-toolbar'
-import { customerSchema, type CustomerFormInput, type CustomerFormValues } from '@/features/sales/schemas/sales-schemas'
+import { CUSTOMER_TYPES, customerSchema, type CustomerFormInput, type CustomerFormValues } from '@/features/sales/schemas/sales-schemas'
 import { useCreateCustomer, useCustomers, useDeleteAllCustomers, useDeleteCustomer, useUpdateCustomer } from '@/features/sales/hooks/use-customers'
-import { CUSTOMER_STATUS_LABELS, type Customer, type CustomerStatus } from '@/features/sales/types/sales-types'
+import type { Customer } from '@/features/sales/types/sales-types'
 import type { ExcelColumn } from '@/lib/excel-io'
 import { useAuth } from '@/providers/auth-provider'
 
+const CUSTOMER_TYPE_LABELS: Record<(typeof CUSTOMER_TYPES)[number], string> = {
+  individual: 'Individual',
+  business: 'Business',
+  government: 'Government',
+  psu: 'PSU / Semi-Government',
+}
+
 const CUSTOMER_EXPORT_COLUMNS: ExcelColumn[] = [
-  { header: 'Name', key: 'name' },
+  { header: 'Customer Code', key: 'customer_code' },
+  { header: 'Customer', key: 'name' },
+  { header: 'Customer Type', key: 'customer_type' },
   { header: 'Contact Person', key: 'contact_person' },
-  { header: 'Email', key: 'email' },
-  { header: 'Phone', key: 'phone' },
-  { header: 'GSTIN', key: 'gstin' },
-  { header: 'PAN Number', key: 'pan_number' },
-  { header: 'State', key: 'state' },
-  { header: 'State Code', key: 'state_code' },
+  { header: 'Mobile', key: 'phone' },
   { header: 'Billing Address', key: 'billing_address' },
-  { header: 'Shipping Address', key: 'shipping_address' },
-  { header: 'Credit Limit', key: 'credit_limit' },
-  { header: 'Credit Days', key: 'credit_days' },
-  { header: 'Status', key: 'status' },
+  { header: 'State', key: 'state' },
+  { header: 'PIN Code', key: 'pincode' },
 ]
+
+// Customer Code is auto-generated on create, so the import template omits it.
+const CUSTOMER_IMPORT_COLUMNS: ExcelColumn[] = CUSTOMER_EXPORT_COLUMNS.filter((c) => c.key !== 'customer_code')
 
 function CustomerFormDialog({ open, onOpenChange, customer }: { open: boolean; onOpenChange: (open: boolean) => void; customer: Customer | null }) {
   const createCustomer = useCreateCustomer()
@@ -53,20 +56,15 @@ function CustomerFormDialog({ open, onOpenChange, customer }: { open: boolean; o
     formState: { errors },
   } = useForm<CustomerFormInput, unknown, CustomerFormValues>({
     resolver: zodResolver(customerSchema),
-values: {
+    values: {
       name: customer?.name ?? '',
+      customer_type: (customer?.customer_type as CustomerFormValues['customer_type']) ?? 'business',
       contact_person: customer?.contact_person ?? '',
-      email: customer?.email ?? '',
       phone: customer?.phone ?? '',
       billing_address: customer?.billing_address ?? '',
-      shipping_address: customer?.shipping_address ?? '',
-      gstin: customer?.gstin ?? '',
-      pan_number: customer?.pan_number ?? '',
       state: customer?.state ?? '',
-      state_code: customer?.state_code ?? '',
-      credit_limit: customer?.credit_limit ?? 0,
-      credit_days: customer?.credit_days ?? 0,
-      status: (customer?.status as CustomerFormValues['status']) ?? 'lead',
+      pincode: customer?.pincode ?? '',
+      logo_url: customer?.logo_url ?? '',
     },
   })
 
@@ -87,89 +85,77 @@ values: {
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{customer ? 'Edit Customer' : 'New Customer'}</DialogTitle>
-          <DialogDescription>Manage customer accounts and credit terms.</DialogDescription>
+          <DialogDescription>Manage customer master records.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
-          <div className="space-y-1.5">
-            <Label htmlFor="name">Company / Customer Name</Label>
-            <Input id="name" {...register('name')} />
-            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+          {customer && (
+            <div className="space-y-1.5">
+              <Label>Customer Code</Label>
+              <Input value={customer.customer_code} disabled readOnly />
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Customer</Label>
+              <Input id="name" {...register('name')} />
+              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Customer Type</Label>
+              <Controller
+                control={control}
+                name="customer_type"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={(v) => field.onChange(v ?? 'business')}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CUSTOMER_TYPES.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {CUSTOMER_TYPE_LABELS[value]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.customer_type && <p className="text-xs text-destructive">{errors.customer_type.message}</p>}
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="contact_person">Contact Person</Label>
               <Input id="contact_person" {...register('contact_person')} />
+              {errors.contact_person && <p className="text-xs text-destructive">{errors.contact_person.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">Mobile</Label>
               <Input id="phone" {...register('phone')} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" {...register('email')} />
-              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="gstin">GSTIN</Label>
-              <Input id="gstin" placeholder="22ABCDE1234F1Z5" {...register('gstin')} />
-              {errors.gstin && <p className="text-xs text-destructive">{errors.gstin.message}</p>}
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="pan_number">PAN Number</Label>
-              <Input id="pan_number" placeholder="ABCDE1234F" {...register('pan_number')} />
-              {errors.pan_number && <p className="text-xs text-destructive">{errors.pan_number.message}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="state">State</Label>
-              <Input id="state" placeholder="Maharashtra" {...register('state')} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="state_code">State Code</Label>
-              <Input id="state_code" placeholder="27" {...register('state_code')} />
+              {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
             </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="billing_address">Billing Address</Label>
             <Textarea id="billing_address" rows={2} {...register('billing_address')} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="shipping_address">Shipping Address</Label>
-            <Textarea id="shipping_address" rows={2} {...register('shipping_address')} />
+            {errors.billing_address && <p className="text-xs text-destructive">{errors.billing_address.message}</p>}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="credit_limit">Credit Limit (₹)</Label>
-              <Input id="credit_limit" type="number" step="0.01" {...register('credit_limit')} />
+              <Label htmlFor="state">State</Label>
+              <Input id="state" placeholder="Maharashtra" {...register('state')} />
+              {errors.state && <p className="text-xs text-destructive">{errors.state.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="credit_days">Credit Days</Label>
-              <Input id="credit_days" type="number" {...register('credit_days')} />
+              <Label htmlFor="pincode">PIN Code</Label>
+              <Input id="pincode" {...register('pincode')} />
+              {errors.pincode && <p className="text-xs text-destructive">{errors.pincode.message}</p>}
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label>Status</Label>
-            <Controller
-              control={control}
-              name="status"
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={(v) => field.onChange(v ?? 'lead')}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(CUSTOMER_STATUS_LABELS).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
+            <Label htmlFor="logo_url">Logo URL</Label>
+            <Input id="logo_url" placeholder="https://.../logo.png" {...register('logo_url')} />
+            {errors.logo_url && <p className="text-xs text-destructive">{errors.logo_url.message}</p>}
           </div>
 
           <DialogFooter>
@@ -193,7 +179,6 @@ export function CustomersPage() {
 
   const { data, isLoading } = useCustomers()
   const createCustomer = useCreateCustomer()
-  const updateCustomer = useUpdateCustomer()
   const deleteCustomer = useDeleteCustomer()
   const deleteAllCustomers = useDeleteAllCustomers()
 
@@ -202,29 +187,38 @@ export function CustomersPage() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null)
 
+  // Active customers always float to the top, ahead of leads/prospects/inactive --
+  // a stable sort so everything else (the existing order from the query) is
+  // untouched within each group.
+  const sortedData = useMemo(
+    () => [...(data ?? [])].sort((a, b) => Number(b.status === 'active') - Number(a.status === 'active')),
+    [data],
+  )
+
 const columns: ColumnDef<Customer>[] = [
-    { accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title="Customer Name" /> },
-    { accessorKey: 'gstin', header: 'GSTIN', cell: ({ row }) => row.original.gstin || <span className="text-muted-foreground">—</span> },
-    { accessorKey: 'pan_number', header: 'PAN', cell: ({ row }) => row.original.pan_number || <span className="text-muted-foreground">—</span> },
+    { accessorKey: 'customer_code', header: 'Customer Code' },
+    {
+      accessorKey: 'name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Customer" />,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          {row.original.logo_url ? (
+            <img src={row.original.logo_url} alt="" className="size-6 shrink-0 rounded-full object-cover" />
+          ) : (
+            <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
+              {row.original.name.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <span>{row.original.name}</span>
+        </div>
+      ),
+    },
+    { accessorKey: 'customer_type', header: 'Customer Type', cell: ({ row }) => CUSTOMER_TYPE_LABELS[row.original.customer_type as keyof typeof CUSTOMER_TYPE_LABELS] ?? row.original.customer_type },
+    { accessorKey: 'contact_person', header: 'Contact Person', cell: ({ row }) => row.original.contact_person || <span className="text-muted-foreground">—</span> },
+    { accessorKey: 'phone', header: 'Mobile', cell: ({ row }) => row.original.phone || <span className="text-muted-foreground">—</span> },
+    { accessorKey: 'billing_address', header: 'Billing Address', cell: ({ row }) => row.original.billing_address || <span className="text-muted-foreground">—</span> },
     { accessorKey: 'state', header: 'State', cell: ({ row }) => row.original.state || <span className="text-muted-foreground">—</span> },
-    { accessorKey: 'phone', header: 'Phone', cell: ({ row }) => row.original.phone || <span className="text-muted-foreground">—</span> },
-    { accessorKey: 'email', header: 'Email', cell: ({ row }) => row.original.email || <span className="text-muted-foreground">—</span> },
-    {
-      id: 'credit_limit',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Credit Limit" />,
-      accessorFn: (row) => row.credit_limit,
-      cell: ({ row }) => `₹${row.original.credit_limit.toLocaleString('en-IN')}`,
-    },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-      cell: ({ row }) => <StatusBadge status={row.original.status} label={CUSTOMER_STATUS_LABELS[row.original.status as keyof typeof CUSTOMER_STATUS_LABELS]} />,
-    },
-    {
-      id: 'is_active',
-      header: 'Enabled',
-      cell: ({ row }) => <Switch checked={row.original.is_active} disabled={!canManage} onCheckedChange={(checked) => updateCustomer.mutate({ id: row.original.id, values: { is_active: checked } })} />,
-    },
+    { accessorKey: 'pincode', header: 'PIN Code', cell: ({ row }) => row.original.pincode || <span className="text-muted-foreground">—</span> },
     {
       id: 'actions',
       cell: ({ row }) =>
@@ -254,30 +248,28 @@ const columns: ColumnDef<Customer>[] = [
   const handleImportCustomers = async (rows: Record<string, string>[]): Promise<ImportResult> => {
     const errors: ImportResult['errors'] = []
     let successCount = 0
-    const validStatuses: CustomerStatus[] = ['lead', 'prospect', 'active', 'inactive', 'churned']
 
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i]
       const rowNum = i + 2
       try {
-        if (!r.name) throw new Error('Name is required')
-        const rawStatus = (r.status || 'lead').trim().toLowerCase() as CustomerStatus
-        if (r.status && !validStatuses.includes(rawStatus)) throw new Error(`Status "${r.status}" is invalid (expected one of ${validStatuses.join(', ')})`)
+        if (!r.name) throw new Error('Customer is required')
+        const rawType = (r.customer_type || 'business').trim().toLowerCase() as CustomerFormValues['customer_type']
+        if (r.customer_type && !CUSTOMER_TYPES.includes(rawType)) throw new Error(`Customer Type "${r.customer_type}" is invalid (expected one of ${CUSTOMER_TYPES.join(', ')})`)
+        if (!r.contact_person) throw new Error('Contact Person is required')
+        if (!r.phone) throw new Error('Mobile is required')
+        if (!r.billing_address) throw new Error('Billing Address is required')
+        if (!r.state) throw new Error('State is required')
+        if (!r.pincode) throw new Error('PIN Code is required')
 
-await createCustomer.mutateAsync({
+        await createCustomer.mutateAsync({
           name: r.name,
-          contact_person: r.contact_person || '',
-          email: r.email || '',
-          phone: r.phone || '',
-          billing_address: r.billing_address || '',
-          shipping_address: r.shipping_address || '',
-          gstin: r.gstin || '',
-          pan_number: r.pan_number || '',
-          state: r.state || '',
-          state_code: r.state_code || '',
-          credit_limit: Number(r.credit_limit) || 0,
-          credit_days: Number(r.credit_days) || 0,
-          status: rawStatus,
+          customer_type: rawType,
+          contact_person: r.contact_person,
+          phone: r.phone,
+          billing_address: r.billing_address,
+          state: r.state,
+          pincode: r.pincode,
         })
         successCount++
       } catch (err) {
@@ -292,7 +284,7 @@ await createCustomer.mutateAsync({
     <div className="space-y-6">
       <PageHeader
         title="Customers"
-        description="Manage customer accounts and credit terms."
+        description="Manage the customer master."
         actions={
           canManage && (
             <div className="flex items-center gap-2">
@@ -300,25 +292,20 @@ await createCustomer.mutateAsync({
                 entityLabel="Customers"
                 exportFilename="customers.xlsx"
                 exportColumns={CUSTOMER_EXPORT_COLUMNS}
-getExportRows={() =>
+                getExportRows={() =>
                   (data ?? []).map((c) => ({
+                    customer_code: c.customer_code,
                     name: c.name,
+                    customer_type: c.customer_type,
                     contact_person: c.contact_person ?? '',
-                    email: c.email ?? '',
                     phone: c.phone ?? '',
-                    gstin: c.gstin ?? '',
-                    pan_number: c.pan_number ?? '',
-                    state: c.state ?? '',
-                    state_code: c.state_code ?? '',
                     billing_address: c.billing_address ?? '',
-                    shipping_address: c.shipping_address ?? '',
-                    credit_limit: c.credit_limit,
-                    credit_days: c.credit_days,
-                    status: c.status,
+                    state: c.state ?? '',
+                    pincode: c.pincode ?? '',
                   }))
                 }
-                importColumns={CUSTOMER_EXPORT_COLUMNS}
-                importDescription="Upload an .xlsx file with your customers. Status must be one of: lead, prospect, active, inactive, churned."
+                importColumns={CUSTOMER_IMPORT_COLUMNS}
+                importDescription="Upload an .xlsx file with your customers. Customer Type must be one of: individual, business, government, psu."
                 onImport={handleImportCustomers}
                 onClearExisting={async () => {
                   const count = data?.length ?? 0
@@ -341,7 +328,7 @@ getExportRows={() =>
 
       <DataTable
         columns={columns}
-        data={data ?? []}
+        data={sortedData}
         isLoading={isLoading}
         globalFilter={search}
         onGlobalFilterChange={setSearch}
