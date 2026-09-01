@@ -7,7 +7,7 @@ export function Sidebar() {
   const companyName = company?.name || 'TransFlow AI ERP'
 
   return (
-    <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar md:flex md:flex-col">
+    <aside className="hidden w-72 shrink-0 border-r border-sidebar-border bg-sidebar md:flex md:flex-col">
       <div className="flex min-h-14 items-start gap-2 border-b border-sidebar-border px-5 py-3">
         <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
           {company?.logo_url ? <img src={company.logo_url} alt="" className="size-full rounded-md object-cover" /> : <TransFlowMark className="size-4" />}

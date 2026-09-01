@@ -13,7 +13,7 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="left" className="w-64 bg-sidebar p-0">
+      <SheetContent side="left" className="w-72 bg-sidebar p-0">
         <SheetHeader className="min-h-14 flex-row items-start gap-2 space-y-0 border-b border-sidebar-border px-5 py-3">
           <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
             {company?.logo_url ? <img src={company.logo_url} alt="" className="size-full rounded-md object-cover" /> : <TransFlowMark className="size-4" />}
