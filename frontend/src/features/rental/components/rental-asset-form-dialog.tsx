@@ -5,12 +5,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { rentalAssetSchema, type RentalAssetFormInput, type RentalAssetFormValues } from '@/features/rental/schemas/rental-schemas'
+import { RENTAL_ASSET_MANUAL_STATUSES, rentalAssetSchema, type RentalAssetFormInput, type RentalAssetFormValues } from '@/features/rental/schemas/rental-schemas'
 import { useCreateRentalAsset, useUpdateRentalAsset } from '@/features/rental/hooks/use-rental-assets'
 import { useRentalAssetCategories } from '@/features/rental/hooks/use-rental-asset-categories'
-import type { RentalAssetWithCategory } from '@/features/rental/types/rental-types'
+import { RENTAL_ASSET_STATUS_LABELS, type RentalAssetWithCategory } from '@/features/rental/types/rental-types'
 
 interface RentalAssetFormDialogProps {
   open: boolean
@@ -33,13 +32,16 @@ export function RentalAssetFormDialog({ open, onOpenChange, asset }: RentalAsset
   } = useForm<RentalAssetFormInput, unknown, RentalAssetFormValues>({
     resolver: zodResolver(rentalAssetSchema),
     values: {
-      category_id: asset?.category_id ?? '',
       name: asset?.name ?? '',
+      category_id: asset?.category_id ?? '',
+      make: asset?.make ?? '',
+      model: asset?.model ?? '',
       serial_number: asset?.serial_number ?? '',
-      current_location: asset?.current_location ?? '',
-      purchase_cost: asset?.purchase_cost ?? undefined,
+      capacity: asset?.capacity ?? '',
       daily_rental_rate: asset?.daily_rental_rate ?? 0,
-      notes: asset?.notes ?? '',
+      monthly_rental_rate: asset?.monthly_rental_rate ?? 0,
+      current_location: asset?.current_location ?? '',
+      status: (asset?.status as RentalAssetFormValues['status']) ?? 'available',
     },
   })
 
@@ -62,10 +64,16 @@ export function RentalAssetFormDialog({ open, onOpenChange, asset }: RentalAsset
           <DialogTitle>{asset ? 'Edit Rental Asset' : 'New Rental Asset'}</DialogTitle>
           <DialogDescription>Machines/equipment available for rental.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+          {asset && (
+            <div className="space-y-1.5">
+              <Label>Asset Code</Label>
+              <Input value={asset.asset_code} disabled readOnly />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">Machine / Asset Name</Label>
               <Input id="name" {...register('name')} />
               {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
             </div>
@@ -75,7 +83,11 @@ export function RentalAssetFormDialog({ open, onOpenChange, asset }: RentalAsset
                 control={control}
                 name="category_id"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    items={(categories ?? []).map((c) => ({ value: c.id, label: c.name }))}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
@@ -89,35 +101,76 @@ export function RentalAssetFormDialog({ open, onOpenChange, asset }: RentalAsset
                   </Select>
                 )}
               />
+              {errors.category_id && <p className="text-xs text-destructive">{errors.category_id.message}</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="serial_number">Serial Number</Label>
+              <Label htmlFor="make">Make / Brand</Label>
+              <Input id="make" {...register('make')} />
+              {errors.make && <p className="text-xs text-destructive">{errors.make.message}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="model">Model No.</Label>
+              <Input id="model" {...register('model')} />
+              {errors.model && <p className="text-xs text-destructive">{errors.model.message}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="serial_number">Serial No.</Label>
               <Input id="serial_number" {...register('serial_number')} />
+              {errors.serial_number && <p className="text-xs text-destructive">{errors.serial_number.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="current_location">Current Location</Label>
-              <Input id="current_location" {...register('current_location')} />
+              <Label htmlFor="capacity">Capacity / Specification</Label>
+              <Input id="capacity" {...register('capacity')} />
+              {errors.capacity && <p className="text-xs text-destructive">{errors.capacity.message}</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="purchase_cost">Purchase Cost</Label>
-              <Input id="purchase_cost" type="number" step="0.01" {...register('purchase_cost')} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="daily_rental_rate">Daily Rental Rate</Label>
+              <Label htmlFor="daily_rental_rate">Rental Rate — Daily (₹)</Label>
               <Input id="daily_rental_rate" type="number" step="0.01" {...register('daily_rental_rate')} />
               {errors.daily_rental_rate && <p className="text-xs text-destructive">{errors.daily_rental_rate.message}</p>}
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="monthly_rental_rate">Rental Rate — Monthly (₹)</Label>
+              <Input id="monthly_rental_rate" type="number" step="0.01" {...register('monthly_rental_rate')} />
+              {errors.monthly_rental_rate && <p className="text-xs text-destructive">{errors.monthly_rental_rate.message}</p>}
+            </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea id="notes" rows={2} {...register('notes')} />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="current_location">Location</Label>
+              <Input id="current_location" {...register('current_location')} />
+              {errors.current_location && <p className="text-xs text-destructive">{errors.current_location.message}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <Controller
+                control={control}
+                name="status"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={(v) => field.onChange(v ?? 'available')}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RENTAL_ASSET_MANUAL_STATUSES.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {RENTAL_ASSET_STATUS_LABELS[value]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
           </div>
 
           <DialogFooter>

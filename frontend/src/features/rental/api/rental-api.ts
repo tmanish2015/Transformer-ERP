@@ -89,13 +89,16 @@ export async function createRentalAsset(values: RentalAssetFormValues) {
   const { data, error } = await supabase
     .from('rental_assets')
     .insert({
-      category_id: values.category_id || null,
+      category_id: values.category_id,
       name: values.name,
-      serial_number: values.serial_number || null,
-      current_location: values.current_location || null,
-      purchase_cost: values.purchase_cost ?? null,
+      make: values.make,
+      model: values.model,
+      serial_number: values.serial_number,
+      capacity: values.capacity,
+      current_location: values.current_location,
       daily_rental_rate: values.daily_rental_rate,
-      notes: values.notes || null,
+      monthly_rental_rate: values.monthly_rental_rate,
+      status: values.status,
     })
     .select()
     .single()
@@ -107,13 +110,16 @@ export async function updateRentalAsset(id: string, values: Partial<RentalAssetF
   const { data, error } = await supabase
     .from('rental_assets')
     .update({
-      ...(values.category_id !== undefined ? { category_id: values.category_id || null } : {}),
+      ...(values.category_id !== undefined ? { category_id: values.category_id } : {}),
       ...(values.name !== undefined ? { name: values.name } : {}),
-      ...(values.serial_number !== undefined ? { serial_number: values.serial_number || null } : {}),
-      ...(values.current_location !== undefined ? { current_location: values.current_location || null } : {}),
-      ...(values.purchase_cost !== undefined ? { purchase_cost: values.purchase_cost ?? null } : {}),
+      ...(values.make !== undefined ? { make: values.make } : {}),
+      ...(values.model !== undefined ? { model: values.model } : {}),
+      ...(values.serial_number !== undefined ? { serial_number: values.serial_number } : {}),
+      ...(values.capacity !== undefined ? { capacity: values.capacity } : {}),
+      ...(values.current_location !== undefined ? { current_location: values.current_location } : {}),
       ...(values.daily_rental_rate !== undefined ? { daily_rental_rate: values.daily_rental_rate } : {}),
-      ...(values.notes !== undefined ? { notes: values.notes || null } : {}),
+      ...(values.monthly_rental_rate !== undefined ? { monthly_rental_rate: values.monthly_rental_rate } : {}),
+      ...(values.status !== undefined ? { status: values.status } : {}),
     })
     .eq('id', id)
     .select()

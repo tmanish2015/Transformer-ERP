@@ -6,14 +6,19 @@ export const rentalAssetCategorySchema = z.object({
 })
 export type RentalAssetCategoryFormValues = z.infer<typeof rentalAssetCategorySchema>
 
+export const RENTAL_ASSET_MANUAL_STATUSES = ['available', 'booked', 'maintenance'] as const
+
 export const rentalAssetSchema = z.object({
-  category_id: z.string().optional().or(z.literal('')),
-  name: z.string().min(1, 'Name is required'),
-  serial_number: z.string().optional().or(z.literal('')),
-  current_location: z.string().optional().or(z.literal('')),
-  purchase_cost: z.coerce.number().min(0).optional(),
-  daily_rental_rate: z.coerce.number().min(0),
-  notes: z.string().optional().or(z.literal('')),
+  name: z.string().min(1, 'Machine / Asset Name is required'),
+  category_id: z.string().min(1, 'Category is required'),
+  make: z.string().min(1, 'Make / Brand is required'),
+  model: z.string().min(1, 'Model No. is required'),
+  serial_number: z.string().min(1, 'Serial No. is required'),
+  capacity: z.string().min(1, 'Capacity / Specification is required'),
+  daily_rental_rate: z.coerce.number().min(0.01, 'Daily rental rate is required'),
+  monthly_rental_rate: z.coerce.number().min(0.01, 'Monthly rental rate is required'),
+  current_location: z.string().min(1, 'Location is required'),
+  status: z.enum(RENTAL_ASSET_MANUAL_STATUSES),
 })
 export type RentalAssetFormInput = z.input<typeof rentalAssetSchema>
 export type RentalAssetFormValues = z.infer<typeof rentalAssetSchema>
