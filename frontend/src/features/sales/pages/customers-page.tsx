@@ -276,7 +276,6 @@ const columns: ColumnDef<Customer>[] = [
         if (!r.name) throw new Error('Customer is required')
         const rawType = (r.customer_type || 'business').trim().toLowerCase() as CustomerFormValues['customer_type']
         if (r.customer_type && !CUSTOMER_TYPES.includes(rawType)) throw new Error(`Customer Type "${r.customer_type}" is invalid (expected one of ${CUSTOMER_TYPES.join(', ')})`)
-        if (!r.contact_person) throw new Error('Contact Person is required')
         if (!r.phone) throw new Error('Mobile is required')
         if (!r.billing_address) throw new Error('Billing Address is required')
         if (!r.state) throw new Error('State is required')
