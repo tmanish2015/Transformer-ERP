@@ -27,11 +27,14 @@ export function RentalAvailabilityPage() {
   }, [])
 
   const occupiedByAsset = useMemo(() => {
+    const today = toDateOnly(new Date())
     const map = new Map<string, { from: number; to: number; kind: 'booked' | 'active' }[]>()
     for (const booking of bookings ?? []) {
       if (booking.status !== 'confirmed') continue
       const list = map.get(booking.rental_asset_id) ?? []
-      list.push({ from: toDateOnly(new Date(booking.start_date)), to: toDateOnly(new Date(booking.end_date)), kind: 'booked' })
+      // No end date yet (return date unknown) -- treat it as occupying the whole visible window.
+      const to = booking.end_date ? toDateOnly(new Date(booking.end_date)) : today + (WINDOW_DAYS - 1) * 86400000
+      list.push({ from: toDateOnly(new Date(booking.start_date)), to, kind: 'booked' })
       map.set(booking.rental_asset_id, list)
     }
     for (const agreement of agreements ?? []) {

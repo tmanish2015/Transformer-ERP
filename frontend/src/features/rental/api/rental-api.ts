@@ -252,7 +252,7 @@ export async function createRentalBooking(customerId: string, values: RentalBook
       customer_id: customerId,
       rental_asset_id: values.rental_asset_id,
       start_date: values.start_date,
-      end_date: values.end_date,
+      end_date: values.end_date || null,
       notes: values.notes || null,
       rental_quotation_id: rentalQuotationId || null,
     })
@@ -265,6 +265,23 @@ export async function createRentalBooking(customerId: string, values: RentalBook
 export async function cancelRentalBooking(id: string) {
   const { error } = await supabase.from('rental_bookings').update({ status: 'cancelled' }).eq('id', id)
   if (error) throw error
+}
+
+// Records the machine physically coming back: sets end_date to the actual return
+// date (overwriting whatever expected date, if any, was given at booking time) and
+// closes the booking. Rental duration for invoicing is always start_date -> this
+// actual end_date, never an earlier "expected" date.
+export async function returnRentalBooking(id: string, actualReturnDate: string) {
+  const { error } = await supabase.from('rental_bookings').update({ end_date: actualReturnDate, status: 'completed' }).eq('id', id)
+  if (error) throw error
+}
+
+// Booking ids that already have an invoice, so "Generate Invoice" doesn't offer to
+// double-invoice a returned booking.
+export async function fetchInvoicedBookingIds(): Promise<Set<string>> {
+  const { data, error } = await supabase.from('sales_invoices').select('rental_booking_id').not('rental_booking_id', 'is', null)
+  if (error) throw error
+  return new Set(data.map((row) => row.rental_booking_id as string))
 }
 
 // ---------- Agreements ----------
@@ -296,7 +313,7 @@ export async function createRentalAgreement(booking: RentalBookingWithRelations,
       customer_id: booking.customer_id,
       rental_asset_id: booking.rental_asset_id,
       start_date: booking.start_date,
-      end_date: booking.end_date,
+      end_date: booking.end_date ?? booking.start_date,
       security_deposit: values.security_deposit,
       late_return_charge_rate: values.late_return_charge_rate,
       operator_provided: values.operator_provided,
@@ -449,13 +466,13 @@ const { error: itemsError } = await supabase.from('sales_invoice_items').insert(
   return invoice
 }
 
-// Invoice a confirmed booking directly, for customers who skip the agreement step
-// entirely. Rental days and rate are confirmed by the user in a dialog (prefilled
-// from the booking dates and the asset's daily rate, but editable) rather than
-// recomputed from stored records -- a single rental-charge line, no operator/fuel/
-// late/damage lines (those only exist once an agreement records them). Marks the
-// booking completed so it can't be invoiced twice; the "Generate Invoice" action
-// disappears once a booking leaves 'confirmed'.
+// Invoice a returned booking directly, for customers who skip the agreement step
+// entirely. Only offered once the booking has an actual return date (status
+// 'completed', set by returnRentalBooking). Rental days and rate are confirmed by
+// the user in a dialog (prefilled from the booking's start/actual-return dates and
+// the asset's daily rate, but editable) rather than recomputed from stored records
+// -- a single rental-charge line, no operator/fuel/late/damage lines (those only
+// exist once an agreement records them).
 export async function createRentalInvoiceFromBooking(booking: RentalBookingWithRelations, values: RentalBookingInvoiceFormValues) {
   const { data: invoice, error } = await supabase
     .from('sales_invoices')
@@ -475,9 +492,6 @@ export async function createRentalInvoiceFromBooking(booking: RentalBookingWithR
 
   const { error: postError } = await supabase.rpc('post_sales_invoice_to_ledger', { p_invoice_id: invoice.id })
   if (postError) throw postError
-
-  const { error: statusError } = await supabase.from('rental_bookings').update({ status: 'completed' }).eq('id', booking.id)
-  if (statusError) throw statusError
 
   return invoice
 }

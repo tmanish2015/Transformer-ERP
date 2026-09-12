@@ -32,7 +32,7 @@ export function RentalBookingInvoiceDialog({ open, onOpenChange, booking }: Rent
   } = useForm<RentalBookingInvoiceFormInput, unknown, RentalBookingInvoiceFormValues>({
     resolver: zodResolver(rentalBookingInvoiceSchema),
     values: {
-      rental_days: booking ? daysBetween(booking.start_date, booking.end_date) : 1,
+      rental_days: booking ? daysBetween(booking.start_date, booking.end_date ?? booking.start_date) : 1,
       daily_rate: booking?.rental_asset.daily_rental_rate ?? 0,
       gst_rate: 18,
     },

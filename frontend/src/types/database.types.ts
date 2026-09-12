@@ -1252,14 +1252,14 @@ billing_address: string | null
           customer_id: string
           rental_asset_id: string
           start_date: string
-          end_date: string
+          end_date: string | null
           status: string
           notes: string | null
           created_by: string | null
           created_at: string
           updated_at: string
         }
-        Insert: Partial<Database['public']['Tables']['rental_bookings']['Row']> & { customer_id: string; rental_asset_id: string; start_date: string; end_date: string }
+        Insert: Partial<Database['public']['Tables']['rental_bookings']['Row']> & { customer_id: string; rental_asset_id: string; start_date: string }
         Update: Partial<Database['public']['Tables']['rental_bookings']['Row']>
         Relationships: [
           { foreignKeyName: 'rental_bookings_customer_id_fkey'; columns: ['customer_id']; referencedRelation: 'customers'; referencedColumns: ['id']; isOneToOne: false },

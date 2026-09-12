@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { CalendarCheck, FileSignature, IndianRupee, Loader2, Plus } from 'lucide-react'
+import { CalendarCheck, FileSignature, IndianRupee, Loader2, PackageCheck, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
 import { EmptyState } from '@/components/shared/empty-state'
 import { StatusBadge } from '@/components/shared/status-badge'
@@ -9,10 +9,11 @@ import { DataTable } from '@/components/data-table/data-table'
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useCancelRentalBooking, useRentalBookings } from '@/features/rental/hooks/use-rental-bookings'
+import { useCancelRentalBooking, useInvoicedBookingIds, useRentalBookings } from '@/features/rental/hooks/use-rental-bookings'
 import { RentalBookingFormDialog } from '@/features/rental/components/rental-booking-form-dialog'
 import { RentalAgreementFormDialog } from '@/features/rental/components/rental-agreement-form-dialog'
 import { RentalBookingInvoiceDialog } from '@/features/rental/components/rental-booking-invoice-dialog'
+import { RentalBookingReturnDialog } from '@/features/rental/components/rental-booking-return-dialog'
 import { RENTAL_BOOKING_STATUS_LABELS, type RentalBookingWithRelations } from '@/features/rental/types/rental-types'
 import { useAuth } from '@/providers/auth-provider'
 
@@ -22,11 +23,13 @@ export function RentalBookingsPage() {
   const navigate = useNavigate()
 
   const { data: bookings, isLoading } = useRentalBookings()
+  const { data: invoicedIds } = useInvoicedBookingIds()
   const cancelBooking = useCancelRentalBooking()
   const [search, setSearch] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [agreementBooking, setAgreementBooking] = useState<RentalBookingWithRelations | null>(null)
   const [invoiceBooking, setInvoiceBooking] = useState<RentalBookingWithRelations | null>(null)
+  const [returnBooking, setReturnBooking] = useState<RentalBookingWithRelations | null>(null)
 
   const columns: ColumnDef<RentalBookingWithRelations>[] = [
     { id: 'booking_number', header: ({ column }) => <DataTableColumnHeader column={column} title="Booking #" />, accessorFn: (row) => row.booking_number },
@@ -35,7 +38,8 @@ export function RentalBookingsPage() {
     {
       id: 'dates',
       header: 'Dates',
-      cell: ({ row }) => `${new Date(row.original.start_date).toLocaleDateString()} – ${new Date(row.original.end_date).toLocaleDateString()}`,
+      cell: ({ row }) =>
+        `${new Date(row.original.start_date).toLocaleDateString()} – ${row.original.end_date ? new Date(row.original.end_date).toLocaleDateString() : 'Open'}`,
     },
     {
       id: 'status',
@@ -44,22 +48,35 @@ export function RentalBookingsPage() {
     },
     {
       id: 'actions',
-      cell: ({ row }) =>
-        canManage &&
-        row.original.status === 'confirmed' && (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setAgreementBooking(row.original)}>
-              <FileSignature className="size-4" /> Create Agreement
-            </Button>
+      cell: ({ row }) => {
+        if (!canManage) return null
+        if (row.original.status === 'confirmed') {
+          return (
+            <div className="flex items-center gap-2">
+              {row.original.end_date && (
+                <Button variant="outline" size="sm" onClick={() => setAgreementBooking(row.original)}>
+                  <FileSignature className="size-4" /> Create Agreement
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={() => setReturnBooking(row.original)}>
+                <PackageCheck className="size-4" /> Return Machine
+              </Button>
+              <Button variant="outline" size="sm" disabled={cancelBooking.isPending} onClick={() => cancelBooking.mutate(row.original.id)}>
+                {cancelBooking.isPending && <Loader2 className="size-4 animate-spin" />}
+                Cancel
+              </Button>
+            </div>
+          )
+        }
+        if (row.original.status === 'completed' && !invoicedIds?.has(row.original.id)) {
+          return (
             <Button variant="outline" size="sm" onClick={() => setInvoiceBooking(row.original)}>
               <IndianRupee className="size-4" /> Generate Invoice
             </Button>
-            <Button variant="outline" size="sm" disabled={cancelBooking.isPending} onClick={() => cancelBooking.mutate(row.original.id)}>
-              {cancelBooking.isPending && <Loader2 className="size-4 animate-spin" />}
-              Cancel
-            </Button>
-          </div>
-        ),
+          )
+        }
+        return null
+      },
     },
   ]
 
@@ -95,6 +112,7 @@ export function RentalBookingsPage() {
       <RentalBookingFormDialog open={formOpen} onOpenChange={setFormOpen} />
       <RentalAgreementFormDialog open={Boolean(agreementBooking)} onOpenChange={(open) => !open && setAgreementBooking(null)} booking={agreementBooking} />
       <RentalBookingInvoiceDialog open={Boolean(invoiceBooking)} onOpenChange={(open) => !open && setInvoiceBooking(null)} booking={invoiceBooking} />
+      <RentalBookingReturnDialog open={Boolean(returnBooking)} onOpenChange={(open) => !open && setReturnBooking(null)} booking={returnBooking} />
     </div>
   )
 }

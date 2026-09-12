@@ -78,7 +78,7 @@ export interface DashboardRentalBooking {
   customer_id: string
   customer_name: string
   start_date: string
-  end_date: string
+  end_date: string | null
   status: string
 }
 

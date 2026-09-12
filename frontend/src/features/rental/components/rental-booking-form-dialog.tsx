@@ -137,7 +137,7 @@ export function RentalBookingFormDialog({ open, onOpenChange, presetCustomerId, 
               {errors.start_date && <p className="text-xs text-destructive">{errors.start_date.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="end_date">End Date</Label>
+              <Label htmlFor="end_date">Expected/Return Date (Optional)</Label>
               <Input id="end_date" type="date" {...register('end_date')} />
               {errors.end_date && <p className="text-xs text-destructive">{errors.end_date.message}</p>}
             </div>

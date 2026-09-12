@@ -46,9 +46,9 @@ export const RENTAL_QUOTATION_STATUS_LABELS: Record<RentalQuotationStatus, strin
 }
 
 export const RENTAL_BOOKING_STATUS_LABELS: Record<RentalBookingStatus, string> = {
-  confirmed: 'Confirmed',
+  confirmed: 'Active',
   cancelled: 'Cancelled',
-  completed: 'Completed',
+  completed: 'Returned',
 }
 
 export const RENTAL_AGREEMENT_STATUS_LABELS: Record<RentalAgreementStatus, string> = {

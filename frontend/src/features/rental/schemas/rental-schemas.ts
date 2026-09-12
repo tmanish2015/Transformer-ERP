@@ -54,10 +54,15 @@ export type RentalQuotationFormValues = z.infer<typeof rentalQuotationSchema>
 export const rentalBookingSchema = z.object({
   rental_asset_id: z.string().min(1, 'Asset is required'),
   start_date: z.string().min(1, 'Start date is required'),
-  end_date: z.string().min(1, 'End date is required'),
+  end_date: z.string().optional().or(z.literal('')),
   notes: z.string().optional().or(z.literal('')),
 })
 export type RentalBookingFormValues = z.infer<typeof rentalBookingSchema>
+
+export const rentalBookingReturnSchema = z.object({
+  actual_return_date: z.string().min(1, 'Actual return date is required'),
+})
+export type RentalBookingReturnFormValues = z.infer<typeof rentalBookingReturnSchema>
 
 export const rentalBookingInvoiceSchema = z.object({
   rental_days: z.coerce.number().int().positive('Days must be at least 1'),

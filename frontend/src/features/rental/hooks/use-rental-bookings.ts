@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { cancelRentalBooking, createRentalBooking, fetchRentalBookings } from '@/features/rental/api/rental-api'
+import { cancelRentalBooking, createRentalBooking, fetchInvoicedBookingIds, fetchRentalBookings, returnRentalBooking } from '@/features/rental/api/rental-api'
 import type { RentalBookingFormValues } from '@/features/rental/schemas/rental-schemas'
 
 const KEY = 'rental-bookings'
@@ -39,4 +39,20 @@ export function useCancelRentalBooking() {
     },
     onError: (error) => toast.error(error.message),
   })
+}
+
+export function useReturnRentalBooking() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, actualReturnDate }: { id: string; actualReturnDate: string }) => returnRentalBooking(id, actualReturnDate),
+    onSuccess: () => {
+      invalidateAll(queryClient)
+      toast.success('Machine returned')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+export function useInvoicedBookingIds() {
+  return useQuery({ queryKey: ['rental-bookings-invoiced-ids'], queryFn: fetchInvoicedBookingIds })
 }

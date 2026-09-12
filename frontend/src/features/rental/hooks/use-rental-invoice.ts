@@ -34,6 +34,7 @@ export function useCreateRentalInvoiceFromBooking() {
       createRentalInvoiceFromBooking(booking, values),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rental-bookings'] })
+      queryClient.invalidateQueries({ queryKey: ['rental-bookings-invoiced-ids'] })
       queryClient.invalidateQueries({ queryKey: ['sales-invoices'] })
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] })
       queryClient.invalidateQueries({ queryKey: ['ledger-lines'] })
