@@ -1653,6 +1653,10 @@ ai_chat_sessions: {
         Args: { p_bom_id: string; p_qty: number }
         Returns: { raw_material_product_id: string; required_qty: number; unit_id: string }[]
       }
+      delete_unreferenced_customers: {
+        Args: Record<string, never>
+        Returns: { deleted_count: number; blocked_count: number }[]
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>

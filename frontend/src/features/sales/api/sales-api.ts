@@ -46,9 +46,17 @@ export async function deleteCustomer(id: string) {
   if (error) throw error
 }
 
-export async function deleteAllCustomers() {
-  const { error } = await supabase.from('customers').delete().not('id', 'is', null)
+// Deletes only customers with no referencing transactions (quotations, sales
+// orders/invoices, repair jobs, test reports, rental inquiries/quotations/
+// bookings/agreements, site surveys, opportunities, transformers) -- a plain
+// bulk DELETE fails atomically the instant it hits even one FK-referenced row,
+// which is why "Clear existing" used to fail outright instead of clearing the
+// customers that were actually safe to remove.
+export async function deleteAllCustomers(): Promise<{ deleted: number; blocked: number }> {
+  const { data, error } = await supabase.rpc('delete_unreferenced_customers')
   if (error) throw error
+  const row = data?.[0]
+  return { deleted: row?.deleted_count ?? 0, blocked: row?.blocked_count ?? 0 }
 }
 
 // ---------- Quotations ----------

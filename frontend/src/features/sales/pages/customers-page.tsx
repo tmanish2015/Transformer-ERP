@@ -345,9 +345,13 @@ const columns: ColumnDef<Customer>[] = [
                 importDescription="Upload an .xlsx file with your customers. Customer Type must be one of: individual, business, government, psu."
                 onImport={handleImportCustomers}
                 onClearExisting={async () => {
-                  const count = data?.length ?? 0
-                  await deleteAllCustomers.mutateAsync()
-                  return count
+                  const { deleted, blocked } = await deleteAllCustomers.mutateAsync()
+                  if (blocked > 0) {
+                    throw new Error(
+                      `Customers could not be completely deleted because some are linked to existing transactions. ${deleted} deleted, ${blocked} blocked.`,
+                    )
+                  }
+                  return deleted
                 }}
               />
               <Button
