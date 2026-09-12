@@ -61,7 +61,9 @@ export type RentalBookingFormValues = z.infer<typeof rentalBookingSchema>
 
 export const rentalBookingReturnSchema = z.object({
   actual_return_date: z.string().min(1, 'Actual return date is required'),
+  daily_rate: z.coerce.number().positive('Rate per day must be greater than 0'),
 })
+export type RentalBookingReturnFormInput = z.input<typeof rentalBookingReturnSchema>
 export type RentalBookingReturnFormValues = z.infer<typeof rentalBookingReturnSchema>
 
 export const rentalBookingInvoiceSchema = z.object({

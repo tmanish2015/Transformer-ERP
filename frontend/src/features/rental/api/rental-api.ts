@@ -495,3 +495,20 @@ export async function createRentalInvoiceFromBooking(booking: RentalBookingWithR
 
   return invoice
 }
+
+// Single-step Return Machine action: records the actual return date (via
+// returnRentalBooking) then immediately invoices the booking for the confirmed
+// rental days x rate (via createRentalInvoiceFromBooking) -- reuses both existing
+// functions rather than duplicating their logic. The unique index on
+// sales_invoices.rental_booking_id is the hard backstop against a double-click (or
+// any other race) producing two invoices for the same booking; the mutation being
+// disabled while pending is the first line of defense.
+export async function returnRentalBookingAndInvoice(
+  booking: RentalBookingWithRelations,
+  actualReturnDate: string,
+  rentalDays: number,
+  dailyRate: number,
+) {
+  await returnRentalBooking(booking.id, actualReturnDate)
+  return createRentalInvoiceFromBooking(booking, { rental_days: rentalDays, daily_rate: dailyRate, gst_rate: 18 })
+}
