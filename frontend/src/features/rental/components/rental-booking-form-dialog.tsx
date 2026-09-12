@@ -83,6 +83,7 @@ export function RentalBookingFormDialog({ open, onOpenChange, presetCustomerId, 
                   setCustomerId(v ?? '')
                   setCustomerError(false)
                 }}
+                items={(customers ?? []).map((c) => ({ value: c.id, label: c.name }))}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select customer" />
@@ -111,7 +112,7 @@ export function RentalBookingFormDialog({ open, onOpenChange, presetCustomerId, 
                 control={control}
                 name="rental_asset_id"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select value={field.value} onValueChange={field.onChange} items={(availableAssets ?? []).map((a) => ({ value: a.id, label: `${a.asset_code} — ${a.name}` }))}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select an available asset" />
                     </SelectTrigger>

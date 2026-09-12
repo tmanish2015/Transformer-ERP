@@ -58,7 +58,7 @@ export function OpportunityFormDialog({ open, onOpenChange, defaultSiteSurveyId 
                 control={control}
                 name="customer_id"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select value={field.value} onValueChange={field.onChange} items={(customers ?? []).map((c) => ({ value: c.id, label: c.name }))}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select customer" />
                     </SelectTrigger>

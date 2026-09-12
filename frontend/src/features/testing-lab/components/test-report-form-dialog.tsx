@@ -109,7 +109,12 @@ export function TestReportFormDialog({ open, onOpenChange, repairJobId, producti
                   control={control}
                   name="customer_id"
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange} disabled={Boolean(repairJobId)}>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={Boolean(repairJobId)}
+                      items={(customers ?? []).map((c) => ({ value: c.id, label: c.name }))}
+                    >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select customer" />
                       </SelectTrigger>

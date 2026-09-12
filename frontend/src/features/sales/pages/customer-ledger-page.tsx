@@ -74,7 +74,7 @@ export function CustomerLedgerPage() {
       />
 
       <div className="max-w-xs">
-        <Select value={customerId} onValueChange={(v) => setCustomerId(v ?? '')}>
+        <Select value={customerId} onValueChange={(v) => setCustomerId(v ?? '')} items={(customers ?? []).map((c) => ({ value: c.id, label: c.name }))}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Select a customer" />
           </SelectTrigger>
