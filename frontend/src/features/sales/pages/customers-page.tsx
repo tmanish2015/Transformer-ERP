@@ -35,7 +35,7 @@ const CUSTOMER_EXPORT_COLUMNS: ExcelColumn[] = [
   { header: 'Customer Code', key: 'customer_code' },
   { header: 'Customer', key: 'name' },
   { header: 'Customer Type', key: 'customer_type' },
-  { header: 'GSTIN', key: 'gstin' },
+  { header: 'GSTIN', key: 'gstin', aliases: ['GSTIN No', 'GSTIN Number', 'GST Number', 'GST No', 'GST No.', 'GSTIN No.'] },
   { header: 'Contact Person', key: 'contact_person' },
   { header: 'Mobile', key: 'phone' },
   { header: 'Billing Address', key: 'billing_address' },
@@ -277,6 +277,12 @@ const columns: ColumnDef<Customer>[] = [
     const errors: ImportResult['errors'] = []
     let successCount = 0
 
+    // Match by exact (trimmed, case-insensitive) name against already-loaded
+    // customers, so re-uploading the same file updates rows already imported
+    // (e.g. to backfill GSTIN once it's parsed correctly) instead of creating
+    // duplicates.
+    const existingByName = new Map((data ?? []).map((c) => [c.name.trim().toLowerCase(), c]))
+
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i]
       const rowNum = i + 2
@@ -285,7 +291,7 @@ const columns: ColumnDef<Customer>[] = [
         const rawType = (r.customer_type || 'business').trim().toLowerCase() as CustomerFormValues['customer_type']
         if (r.customer_type && !CUSTOMER_TYPES.includes(rawType)) throw new Error(`Customer Type "${r.customer_type}" is invalid (expected one of ${CUSTOMER_TYPES.join(', ')})`)
 
-        await createCustomer.mutateAsync({
+        const payload = {
           name: r.name,
           customer_type: rawType,
           gstin: r.gstin,
@@ -294,7 +300,13 @@ const columns: ColumnDef<Customer>[] = [
           billing_address: r.billing_address,
           state: r.state,
           pincode: r.pincode,
-        })
+        }
+        const existing = existingByName.get(r.name.trim().toLowerCase())
+        if (existing) {
+          await updateCustomer.mutateAsync({ id: existing.id, values: payload })
+        } else {
+          await createCustomer.mutateAsync(payload)
+        }
         successCount++
       } catch (err) {
         errors.push({ row: rowNum, message: err instanceof Error ? err.message : 'Failed to import row' })

@@ -3,6 +3,10 @@ import ExcelJS from 'exceljs'
 export interface ExcelColumn {
   header: string
   key: string
+  // Alternate header spellings an uploaded file's header row is also matched
+  // against (case-insensitively), for columns whose real-world naming varies
+  // (e.g. "GSTIN" vs "GSTIN No" vs "GST Number").
+  aliases?: string[]
 }
 
 export async function exportRowsToExcel(filename: string, columns: ExcelColumn[], rows: Record<string, unknown>[]) {
@@ -33,7 +37,7 @@ export async function parseExcelFile(file: File, columns: ExcelColumn[]): Promis
   const headerMap = new Map<number, string>()
   sheet.getRow(1).eachCell((cell, colNumber) => {
     const headerText = String(cell.value ?? '').trim().toLowerCase()
-    const match = columns.find((c) => c.header.toLowerCase() === headerText)
+    const match = columns.find((c) => c.header.toLowerCase() === headerText || c.aliases?.some((a) => a.toLowerCase() === headerText))
     if (match) headerMap.set(colNumber, match.key)
   })
 
