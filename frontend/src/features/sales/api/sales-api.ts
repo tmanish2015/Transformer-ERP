@@ -23,7 +23,7 @@ export async function createCustomer(values: CustomerFormValues) {
     .insert({
       name: values.name,
       customer_type: values.customer_type,
-      gstin: values.gstin,
+      gstin: values.gstin || null,
       contact_person: values.contact_person || null,
       phone: values.phone || null,
       billing_address: values.billing_address || null,

@@ -5,7 +5,7 @@ export const CUSTOMER_TYPES = ['individual', 'business', 'government', 'psu'] as
 export const customerSchema = z.object({
   name: z.string().min(1, 'Customer is required'),
   customer_type: z.enum(CUSTOMER_TYPES),
-  gstin: z.string().min(1, 'GSTIN is required'),
+  gstin: z.string().optional().or(z.literal('')),
   contact_person: z.string().optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
   billing_address: z.string().optional().or(z.literal('')),

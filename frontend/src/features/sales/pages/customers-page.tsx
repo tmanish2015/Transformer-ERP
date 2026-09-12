@@ -284,7 +284,6 @@ const columns: ColumnDef<Customer>[] = [
         if (!r.name) throw new Error('Customer is required')
         const rawType = (r.customer_type || 'business').trim().toLowerCase() as CustomerFormValues['customer_type']
         if (r.customer_type && !CUSTOMER_TYPES.includes(rawType)) throw new Error(`Customer Type "${r.customer_type}" is invalid (expected one of ${CUSTOMER_TYPES.join(', ')})`)
-        if (!r.gstin) throw new Error('GSTIN is required')
 
         await createCustomer.mutateAsync({
           name: r.name,
