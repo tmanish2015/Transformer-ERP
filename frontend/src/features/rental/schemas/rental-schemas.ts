@@ -11,13 +11,13 @@ export const RENTAL_ASSET_MANUAL_STATUSES = ['available', 'booked', 'maintenance
 export const rentalAssetSchema = z.object({
   name: z.string().min(1, 'Machine / Asset Name is required'),
   category_id: z.string().min(1, 'Category is required'),
-  make: z.string().min(1, 'Make / Brand is required'),
-  model: z.string().min(1, 'Model No. is required'),
-  serial_number: z.string().min(1, 'Serial No. is required'),
-  capacity: z.string().min(1, 'Capacity / Specification is required'),
-  daily_rental_rate: z.coerce.number().min(0.01, 'Daily rental rate is required'),
-  monthly_rental_rate: z.coerce.number().min(0.01, 'Monthly rental rate is required'),
-  current_location: z.string().min(1, 'Location is required'),
+  make: z.string().optional().or(z.literal('')),
+  model: z.string().optional().or(z.literal('')),
+  serial_number: z.string().optional().or(z.literal('')),
+  capacity: z.string().optional().or(z.literal('')),
+  daily_rental_rate: z.coerce.number().min(0),
+  monthly_rental_rate: z.coerce.number().min(0),
+  current_location: z.string().optional().or(z.literal('')),
   status: z.enum(RENTAL_ASSET_MANUAL_STATUSES),
 })
 export type RentalAssetFormInput = z.input<typeof rentalAssetSchema>
