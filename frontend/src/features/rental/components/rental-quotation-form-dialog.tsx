@@ -102,7 +102,12 @@ export function RentalQuotationFormDialog({ open, onOpenChange, presetInquiryId 
                   control={control}
                   name="customer_id"
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange} disabled={Boolean(presetInquiryId)}>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={Boolean(presetInquiryId)}
+                      items={(customers ?? []).map((c) => ({ value: c.id, label: c.name }))}
+                    >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select customer" />
                       </SelectTrigger>
@@ -163,6 +168,7 @@ export function RentalQuotationFormDialog({ open, onOpenChange, presetInquiryId 
                                     const asset = availableAssets?.find((a) => a.id === value)
                                     if (asset) setValue(`items.${index}.daily_rate`, asset.daily_rental_rate)
                                   }}
+                                  items={(availableAssets ?? []).map((a) => ({ value: a.id, label: `${a.asset_code} — ${a.name}` }))}
                                 >
                                   <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Select asset" />
