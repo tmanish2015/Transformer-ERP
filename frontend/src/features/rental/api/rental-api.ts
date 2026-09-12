@@ -5,6 +5,7 @@ import type {
   RentalAssetCategoryFormValues,
   RentalAssetFormValues,
   RentalBookingFormValues,
+  RentalBookingInvoiceFormValues,
   RentalDamageAssessmentFormValues,
   RentalDispatchFormValues,
   RentalInquiryFormValues,
@@ -238,7 +239,7 @@ export async function sendRentalQuotation(id: string) {
 export async function fetchRentalBookings(): Promise<RentalBookingWithRelations[]> {
   const { data, error } = await supabase
     .from('rental_bookings')
-    .select('*, customer:customers(id,name), rental_asset:rental_assets(id,asset_code,name), rental_quotation:rental_quotations(id,quotation_number)')
+    .select('*, customer:customers(id,name), rental_asset:rental_assets(id,asset_code,name,daily_rental_rate), rental_quotation:rental_quotations(id,quotation_number)')
     .order('created_at', { ascending: false })
   if (error) throw error
   return data
@@ -449,18 +450,13 @@ const { error: itemsError } = await supabase.from('sales_invoice_items').insert(
 }
 
 // Invoice a confirmed booking directly, for customers who skip the agreement step
-// entirely -- a flat rental-days x daily-rate charge with no operator/fuel/late/damage
-// lines (those only exist once an agreement records them). Marks the booking
-// completed so it can't be invoiced twice; the "Generate Invoice" action disappears
-// once a booking leaves 'confirmed'.
-export async function createRentalInvoiceFromBooking(booking: RentalBookingWithRelations) {
-  const { data: lines, error: rpcError } = await supabase.rpc('calculate_rental_invoice_from_booking', {
-    p_booking_id: booking.id,
-  })
-  if (rpcError) throw rpcError
-
-  const lineItems = (lines ?? []) as { description: string; quantity: number; unit_price: number; gst_rate: number }[]
-
+// entirely. Rental days and rate are confirmed by the user in a dialog (prefilled
+// from the booking dates and the asset's daily rate, but editable) rather than
+// recomputed from stored records -- a single rental-charge line, no operator/fuel/
+// late/damage lines (those only exist once an agreement records them). Marks the
+// booking completed so it can't be invoiced twice; the "Generate Invoice" action
+// disappears once a booking leaves 'confirmed'.
+export async function createRentalInvoiceFromBooking(booking: RentalBookingWithRelations, values: RentalBookingInvoiceFormValues) {
   const { data: invoice, error } = await supabase
     .from('sales_invoices')
     .insert({ customer_id: booking.customer_id, rental_booking_id: booking.id, invoice_type: 'rental', notes: `Rental booking ${booking.booking_number}` })
@@ -468,15 +464,13 @@ export async function createRentalInvoiceFromBooking(booking: RentalBookingWithR
     .single()
   if (error) throw error
 
-  const { error: itemsError } = await supabase.from('sales_invoice_items').insert(
-    lineItems.map((line) => ({
-      sales_invoice_id: invoice.id,
-      description: line.description,
-      quantity: line.quantity,
-      unit_price: line.unit_price,
-      gst_rate: line.gst_rate,
-    })),
-  )
+  const { error: itemsError } = await supabase.from('sales_invoice_items').insert({
+    sales_invoice_id: invoice.id,
+    description: `Rental charge (${values.rental_days} days)`,
+    quantity: values.rental_days,
+    unit_price: values.daily_rate,
+    gst_rate: values.gst_rate,
+  })
   if (itemsError) throw itemsError
 
   const { error: postError } = await supabase.rpc('post_sales_invoice_to_ledger', { p_invoice_id: invoice.id })

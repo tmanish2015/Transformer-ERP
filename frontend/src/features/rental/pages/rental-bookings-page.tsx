@@ -10,9 +10,9 @@ import { DataTableColumnHeader } from '@/components/data-table/data-table-column
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useCancelRentalBooking, useRentalBookings } from '@/features/rental/hooks/use-rental-bookings'
-import { useCreateRentalInvoiceFromBooking } from '@/features/rental/hooks/use-rental-invoice'
 import { RentalBookingFormDialog } from '@/features/rental/components/rental-booking-form-dialog'
 import { RentalAgreementFormDialog } from '@/features/rental/components/rental-agreement-form-dialog'
+import { RentalBookingInvoiceDialog } from '@/features/rental/components/rental-booking-invoice-dialog'
 import { RENTAL_BOOKING_STATUS_LABELS, type RentalBookingWithRelations } from '@/features/rental/types/rental-types'
 import { useAuth } from '@/providers/auth-provider'
 
@@ -23,10 +23,10 @@ export function RentalBookingsPage() {
 
   const { data: bookings, isLoading } = useRentalBookings()
   const cancelBooking = useCancelRentalBooking()
-  const createInvoice = useCreateRentalInvoiceFromBooking()
   const [search, setSearch] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [agreementBooking, setAgreementBooking] = useState<RentalBookingWithRelations | null>(null)
+  const [invoiceBooking, setInvoiceBooking] = useState<RentalBookingWithRelations | null>(null)
 
   const columns: ColumnDef<RentalBookingWithRelations>[] = [
     { id: 'booking_number', header: ({ column }) => <DataTableColumnHeader column={column} title="Booking #" />, accessorFn: (row) => row.booking_number },
@@ -51,9 +51,8 @@ export function RentalBookingsPage() {
             <Button variant="outline" size="sm" onClick={() => setAgreementBooking(row.original)}>
               <FileSignature className="size-4" /> Create Agreement
             </Button>
-            <Button variant="outline" size="sm" disabled={createInvoice.isPending} onClick={() => createInvoice.mutate(row.original)}>
-              {createInvoice.isPending ? <Loader2 className="size-4 animate-spin" /> : <IndianRupee className="size-4" />}
-              Generate Invoice
+            <Button variant="outline" size="sm" onClick={() => setInvoiceBooking(row.original)}>
+              <IndianRupee className="size-4" /> Generate Invoice
             </Button>
             <Button variant="outline" size="sm" disabled={cancelBooking.isPending} onClick={() => cancelBooking.mutate(row.original.id)}>
               {cancelBooking.isPending && <Loader2 className="size-4 animate-spin" />}
@@ -95,6 +94,7 @@ export function RentalBookingsPage() {
 
       <RentalBookingFormDialog open={formOpen} onOpenChange={setFormOpen} />
       <RentalAgreementFormDialog open={Boolean(agreementBooking)} onOpenChange={(open) => !open && setAgreementBooking(null)} booking={agreementBooking} />
+      <RentalBookingInvoiceDialog open={Boolean(invoiceBooking)} onOpenChange={(open) => !open && setInvoiceBooking(null)} booking={invoiceBooking} />
     </div>
   )
 }

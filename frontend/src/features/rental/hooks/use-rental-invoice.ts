@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { createRentalInvoice, createRentalInvoiceFromBooking, fetchInvoiceForRentalAgreement } from '@/features/rental/api/rental-api'
+import type { RentalBookingInvoiceFormValues } from '@/features/rental/schemas/rental-schemas'
 import type { RentalAgreementWithRelations, RentalBookingWithRelations } from '@/features/rental/types/rental-types'
 
 export function useInvoiceForRentalAgreement(agreementId: string | undefined) {
@@ -29,7 +30,8 @@ export function useCreateRentalInvoice(agreementId: string) {
 export function useCreateRentalInvoiceFromBooking() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (booking: RentalBookingWithRelations) => createRentalInvoiceFromBooking(booking),
+    mutationFn: ({ booking, values }: { booking: RentalBookingWithRelations; values: RentalBookingInvoiceFormValues }) =>
+      createRentalInvoiceFromBooking(booking, values),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rental-bookings'] })
       queryClient.invalidateQueries({ queryKey: ['sales-invoices'] })

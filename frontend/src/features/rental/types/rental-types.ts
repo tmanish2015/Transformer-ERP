@@ -88,7 +88,7 @@ export interface RentalQuotationItemWithAsset extends RentalQuotationItem {
 
 export interface RentalBookingWithRelations extends RentalBooking {
   customer: NamedRef
-  rental_asset: { id: string; asset_code: string; name: string }
+  rental_asset: { id: string; asset_code: string; name: string; daily_rental_rate: number }
   rental_quotation: { id: string; quotation_number: string } | null
 }
 

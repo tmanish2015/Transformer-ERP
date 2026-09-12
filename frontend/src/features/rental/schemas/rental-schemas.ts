@@ -59,6 +59,14 @@ export const rentalBookingSchema = z.object({
 })
 export type RentalBookingFormValues = z.infer<typeof rentalBookingSchema>
 
+export const rentalBookingInvoiceSchema = z.object({
+  rental_days: z.coerce.number().int().positive('Days must be at least 1'),
+  daily_rate: z.coerce.number().min(0),
+  gst_rate: z.coerce.number().min(0).max(100),
+})
+export type RentalBookingInvoiceFormInput = z.input<typeof rentalBookingInvoiceSchema>
+export type RentalBookingInvoiceFormValues = z.infer<typeof rentalBookingInvoiceSchema>
+
 export const rentalAgreementSchema = z.object({
   security_deposit: z.coerce.number().min(0),
   late_return_charge_rate: z.coerce.number().min(0),
