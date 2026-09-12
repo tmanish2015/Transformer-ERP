@@ -23,11 +23,12 @@ export async function createCustomer(values: CustomerFormValues) {
     .insert({
       name: values.name,
       customer_type: values.customer_type,
+      gstin: values.gstin,
       contact_person: values.contact_person || null,
-      phone: values.phone,
-      billing_address: values.billing_address,
-      state: values.state,
-      pincode: values.pincode,
+      phone: values.phone || null,
+      billing_address: values.billing_address || null,
+      state: values.state || null,
+      pincode: values.pincode || null,
     })
     .select()
     .single()

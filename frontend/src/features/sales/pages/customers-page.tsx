@@ -35,6 +35,7 @@ const CUSTOMER_EXPORT_COLUMNS: ExcelColumn[] = [
   { header: 'Customer Code', key: 'customer_code' },
   { header: 'Customer', key: 'name' },
   { header: 'Customer Type', key: 'customer_type' },
+  { header: 'GSTIN', key: 'gstin' },
   { header: 'Contact Person', key: 'contact_person' },
   { header: 'Mobile', key: 'phone' },
   { header: 'Billing Address', key: 'billing_address' },
@@ -61,6 +62,7 @@ function CustomerFormDialog({ open, onOpenChange, customer }: { open: boolean; o
     values: {
       name: customer?.name ?? '',
       customer_type: (customer?.customer_type as CustomerFormValues['customer_type']) ?? 'business',
+      gstin: customer?.gstin ?? '',
       contact_person: customer?.contact_person ?? '',
       phone: customer?.phone ?? '',
       billing_address: customer?.billing_address ?? '',
@@ -124,6 +126,11 @@ function CustomerFormDialog({ open, onOpenChange, customer }: { open: boolean; o
               />
               {errors.customer_type && <p className="text-xs text-destructive">{errors.customer_type.message}</p>}
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="gstin">GSTIN</Label>
+            <Input id="gstin" placeholder="22ABCDE1234F1Z5" {...register('gstin')} />
+            {errors.gstin && <p className="text-xs text-destructive">{errors.gstin.message}</p>}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -218,6 +225,7 @@ const columns: ColumnDef<Customer>[] = [
       ),
     },
     { accessorKey: 'customer_type', header: 'Customer Type', cell: ({ row }) => CUSTOMER_TYPE_LABELS[row.original.customer_type as keyof typeof CUSTOMER_TYPE_LABELS] ?? row.original.customer_type },
+    { accessorKey: 'gstin', header: 'GSTIN', cell: ({ row }) => row.original.gstin || <span className="text-muted-foreground">—</span> },
     { accessorKey: 'contact_person', header: 'Contact Person', cell: ({ row }) => row.original.contact_person || <span className="text-muted-foreground">—</span> },
     { accessorKey: 'phone', header: 'Mobile', cell: ({ row }) => row.original.phone || <span className="text-muted-foreground">—</span> },
     { accessorKey: 'billing_address', header: 'Billing Address', cell: ({ row }) => row.original.billing_address || <span className="text-muted-foreground">—</span> },
@@ -276,14 +284,12 @@ const columns: ColumnDef<Customer>[] = [
         if (!r.name) throw new Error('Customer is required')
         const rawType = (r.customer_type || 'business').trim().toLowerCase() as CustomerFormValues['customer_type']
         if (r.customer_type && !CUSTOMER_TYPES.includes(rawType)) throw new Error(`Customer Type "${r.customer_type}" is invalid (expected one of ${CUSTOMER_TYPES.join(', ')})`)
-        if (!r.phone) throw new Error('Mobile is required')
-        if (!r.billing_address) throw new Error('Billing Address is required')
-        if (!r.state) throw new Error('State is required')
-        if (!r.pincode) throw new Error('PIN Code is required')
+        if (!r.gstin) throw new Error('GSTIN is required')
 
         await createCustomer.mutateAsync({
           name: r.name,
           customer_type: rawType,
+          gstin: r.gstin,
           contact_person: r.contact_person,
           phone: r.phone,
           billing_address: r.billing_address,
@@ -316,6 +322,7 @@ const columns: ColumnDef<Customer>[] = [
                     customer_code: c.customer_code,
                     name: c.name,
                     customer_type: c.customer_type,
+                    gstin: c.gstin ?? '',
                     contact_person: c.contact_person ?? '',
                     phone: c.phone ?? '',
                     billing_address: c.billing_address ?? '',

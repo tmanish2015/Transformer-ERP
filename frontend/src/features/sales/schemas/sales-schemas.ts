@@ -5,11 +5,12 @@ export const CUSTOMER_TYPES = ['individual', 'business', 'government', 'psu'] as
 export const customerSchema = z.object({
   name: z.string().min(1, 'Customer is required'),
   customer_type: z.enum(CUSTOMER_TYPES),
+  gstin: z.string().min(1, 'GSTIN is required'),
   contact_person: z.string().optional().or(z.literal('')),
-  phone: z.string().min(1, 'Mobile is required'),
-  billing_address: z.string().min(1, 'Billing address is required'),
-  state: z.string().min(1, 'State is required'),
-  pincode: z.string().min(1, 'PIN code is required'),
+  phone: z.string().optional().or(z.literal('')),
+  billing_address: z.string().optional().or(z.literal('')),
+  state: z.string().optional().or(z.literal('')),
+  pincode: z.string().optional().or(z.literal('')),
   logo_url: z.string().optional().or(z.literal('')),
 })
 export type CustomerFormValues = z.infer<typeof customerSchema>
