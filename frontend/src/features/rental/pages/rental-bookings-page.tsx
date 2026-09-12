@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { CalendarCheck, FileSignature, Loader2, Plus } from 'lucide-react'
+import { CalendarCheck, FileSignature, IndianRupee, Loader2, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
 import { EmptyState } from '@/components/shared/empty-state'
 import { StatusBadge } from '@/components/shared/status-badge'
@@ -10,6 +10,7 @@ import { DataTableColumnHeader } from '@/components/data-table/data-table-column
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useCancelRentalBooking, useRentalBookings } from '@/features/rental/hooks/use-rental-bookings'
+import { useCreateRentalInvoiceFromBooking } from '@/features/rental/hooks/use-rental-invoice'
 import { RentalBookingFormDialog } from '@/features/rental/components/rental-booking-form-dialog'
 import { RentalAgreementFormDialog } from '@/features/rental/components/rental-agreement-form-dialog'
 import { RENTAL_BOOKING_STATUS_LABELS, type RentalBookingWithRelations } from '@/features/rental/types/rental-types'
@@ -22,6 +23,7 @@ export function RentalBookingsPage() {
 
   const { data: bookings, isLoading } = useRentalBookings()
   const cancelBooking = useCancelRentalBooking()
+  const createInvoice = useCreateRentalInvoiceFromBooking()
   const [search, setSearch] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [agreementBooking, setAgreementBooking] = useState<RentalBookingWithRelations | null>(null)
@@ -48,6 +50,10 @@ export function RentalBookingsPage() {
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => setAgreementBooking(row.original)}>
               <FileSignature className="size-4" /> Create Agreement
+            </Button>
+            <Button variant="outline" size="sm" disabled={createInvoice.isPending} onClick={() => createInvoice.mutate(row.original)}>
+              {createInvoice.isPending ? <Loader2 className="size-4 animate-spin" /> : <IndianRupee className="size-4" />}
+              Generate Invoice
             </Button>
             <Button variant="outline" size="sm" disabled={cancelBooking.isPending} onClick={() => cancelBooking.mutate(row.original.id)}>
               {cancelBooking.isPending && <Loader2 className="size-4 animate-spin" />}

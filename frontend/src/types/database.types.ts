@@ -884,6 +884,7 @@ billing_address: string | null
           status: string
           repair_job_id: string | null
           rental_agreement_id: string | null
+          rental_booking_id: string | null
           notes: string | null
           created_by: string | null
           created_at: string
@@ -896,6 +897,7 @@ billing_address: string | null
           { foreignKeyName: 'sales_invoices_sales_order_id_fkey'; columns: ['sales_order_id']; referencedRelation: 'sales_orders'; referencedColumns: ['id']; isOneToOne: false },
           { foreignKeyName: 'sales_invoices_repair_job_id_fkey'; columns: ['repair_job_id']; referencedRelation: 'repair_jobs'; referencedColumns: ['id']; isOneToOne: true },
           { foreignKeyName: 'sales_invoices_rental_agreement_id_fkey'; columns: ['rental_agreement_id']; referencedRelation: 'rental_agreements'; referencedColumns: ['id']; isOneToOne: true },
+          { foreignKeyName: 'sales_invoices_rental_booking_id_fkey'; columns: ['rental_booking_id']; referencedRelation: 'rental_bookings'; referencedColumns: ['id']; isOneToOne: true },
         ]
       }
       sales_invoice_items: {
@@ -1641,6 +1643,10 @@ ai_chat_sessions: {
       post_sales_invoice_to_ledger: { Args: { p_invoice_id: string }; Returns: void }
       calculate_rental_invoice: {
         Args: { p_agreement_id: string }
+        Returns: { description: string; quantity: number; unit_price: number; gst_rate: number }[]
+      }
+      calculate_rental_invoice_from_booking: {
+        Args: { p_booking_id: string }
         Returns: { description: string; quantity: number; unit_price: number; gst_rate: number }[]
       }
       explode_bom: {

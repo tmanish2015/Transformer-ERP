@@ -447,3 +447,43 @@ const { error: itemsError } = await supabase.from('sales_invoice_items').insert(
 
   return invoice
 }
+
+// Invoice a confirmed booking directly, for customers who skip the agreement step
+// entirely -- a flat rental-days x daily-rate charge with no operator/fuel/late/damage
+// lines (those only exist once an agreement records them). Marks the booking
+// completed so it can't be invoiced twice; the "Generate Invoice" action disappears
+// once a booking leaves 'confirmed'.
+export async function createRentalInvoiceFromBooking(booking: RentalBookingWithRelations) {
+  const { data: lines, error: rpcError } = await supabase.rpc('calculate_rental_invoice_from_booking', {
+    p_booking_id: booking.id,
+  })
+  if (rpcError) throw rpcError
+
+  const lineItems = (lines ?? []) as { description: string; quantity: number; unit_price: number; gst_rate: number }[]
+
+  const { data: invoice, error } = await supabase
+    .from('sales_invoices')
+    .insert({ customer_id: booking.customer_id, rental_booking_id: booking.id, invoice_type: 'rental', notes: `Rental booking ${booking.booking_number}` })
+    .select()
+    .single()
+  if (error) throw error
+
+  const { error: itemsError } = await supabase.from('sales_invoice_items').insert(
+    lineItems.map((line) => ({
+      sales_invoice_id: invoice.id,
+      description: line.description,
+      quantity: line.quantity,
+      unit_price: line.unit_price,
+      gst_rate: line.gst_rate,
+    })),
+  )
+  if (itemsError) throw itemsError
+
+  const { error: postError } = await supabase.rpc('post_sales_invoice_to_ledger', { p_invoice_id: invoice.id })
+  if (postError) throw postError
+
+  const { error: statusError } = await supabase.from('rental_bookings').update({ status: 'completed' }).eq('id', booking.id)
+  if (statusError) throw statusError
+
+  return invoice
+}

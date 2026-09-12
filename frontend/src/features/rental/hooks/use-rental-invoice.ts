@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { createRentalInvoice, fetchInvoiceForRentalAgreement } from '@/features/rental/api/rental-api'
-import type { RentalAgreementWithRelations } from '@/features/rental/types/rental-types'
+import { createRentalInvoice, createRentalInvoiceFromBooking, fetchInvoiceForRentalAgreement } from '@/features/rental/api/rental-api'
+import type { RentalAgreementWithRelations, RentalBookingWithRelations } from '@/features/rental/types/rental-types'
 
 export function useInvoiceForRentalAgreement(agreementId: string | undefined) {
   return useQuery({
@@ -17,6 +17,21 @@ export function useCreateRentalInvoice(agreementId: string) {
     mutationFn: (agreement: RentalAgreementWithRelations) => createRentalInvoice(agreement),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rental-agreement-invoice', agreementId] })
+      queryClient.invalidateQueries({ queryKey: ['sales-invoices'] })
+      queryClient.invalidateQueries({ queryKey: ['journal-entries'] })
+      queryClient.invalidateQueries({ queryKey: ['ledger-lines'] })
+      toast.success('Rental invoice created and posted to the ledger')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+export function useCreateRentalInvoiceFromBooking() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (booking: RentalBookingWithRelations) => createRentalInvoiceFromBooking(booking),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rental-bookings'] })
       queryClient.invalidateQueries({ queryKey: ['sales-invoices'] })
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] })
       queryClient.invalidateQueries({ queryKey: ['ledger-lines'] })
