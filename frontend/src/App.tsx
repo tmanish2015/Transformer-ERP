@@ -52,6 +52,7 @@ const SalesOrdersPage = lazy(() => import('@/features/sales/pages/sales-orders-p
 const DeliveryChallansPage = lazy(() => import('@/features/sales/pages/delivery-challans-page').then((m) => ({ default: m.DeliveryChallansPage })))
 const SalesInvoicesPage = lazy(() => import('@/features/sales/pages/sales-invoices-page').then((m) => ({ default: m.SalesInvoicesPage })))
 const CustomerLedgerPage = lazy(() => import('@/features/sales/pages/customer-ledger-page').then((m) => ({ default: m.CustomerLedgerPage })))
+const Customer360Page = lazy(() => import('@/features/sales/pages/customer-360-page').then((m) => ({ default: m.Customer360Page })))
 const WorkshopDashboardPage = lazy(() => import('@/features/workshop/pages/workshop-dashboard-page').then((m) => ({ default: m.WorkshopDashboardPage })))
 const RepairJobsPage = lazy(() => import('@/features/workshop/pages/repair-jobs-page').then((m) => ({ default: m.RepairJobsPage })))
 const RepairJobDetailPage = lazy(() => import('@/features/workshop/pages/repair-job-detail-page').then((m) => ({ default: m.RepairJobDetailPage })))
@@ -323,6 +324,14 @@ function App() {
                             element={
                               <RequirePermission permission="sales.view">
                                 <CustomersPage />
+                              </RequirePermission>
+                            }
+                          />
+                          <Route
+                            path="sales/customers/:customerId/360"
+                            element={
+                              <RequirePermission permission="sales.view">
+                                <Customer360Page />
                               </RequirePermission>
                             }
                           />

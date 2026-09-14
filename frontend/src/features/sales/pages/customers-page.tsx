@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Loader2, MoreHorizontal, Pencil, Plus, Trash2, Users } from 'lucide-react'
+import { Eye, Loader2, MoreHorizontal, Pencil, Plus, Trash2, Users } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
 import { EmptyState } from '@/components/shared/empty-state'
 import { StatusBadge } from '@/components/shared/status-badge'
@@ -183,6 +184,7 @@ function CustomerFormDialog({ open, onOpenChange, customer }: { open: boolean; o
 }
 
 export function CustomersPage() {
+  const navigate = useNavigate()
   const { hasPermission } = useAuth()
   const canManage = hasPermission('sales.manage')
 
@@ -249,13 +251,16 @@ const columns: ColumnDef<Customer>[] = [
     },
     {
       id: 'actions',
-      cell: ({ row }) =>
-        canManage && (
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
-              <MoreHorizontal className="size-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
+            <MoreHorizontal className="size-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => navigate(`/sales/customers/${row.original.id}/360`)}>
+              <Eye /> 360° View
+            </DropdownMenuItem>
+            {canManage && (
               <DropdownMenuItem
                 onClick={() => {
                   setEditingCustomer(row.original)
@@ -264,12 +269,15 @@ const columns: ColumnDef<Customer>[] = [
               >
                 <Pencil /> Edit
               </DropdownMenuItem>
+            )}
+            {canManage && (
               <DropdownMenuItem variant="destructive" onClick={() => setDeletingCustomer(row.original)}>
                 <Trash2 /> Delete
               </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ),
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
     },
   ]
 
