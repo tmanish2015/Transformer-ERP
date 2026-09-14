@@ -251,32 +251,33 @@ const columns: ColumnDef<Customer>[] = [
     },
     {
       id: 'actions',
+      header: 'Actions',
       cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
-            <MoreHorizontal className="size-4" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => navigate(`/sales/customers/${row.original.id}/360`)}>
-              <Eye /> 360° View
-            </DropdownMenuItem>
-            {canManage && (
-              <DropdownMenuItem
-                onClick={() => {
-                  setEditingCustomer(row.original)
-                  setFormOpen(true)
-                }}
-              >
-                <Pencil /> Edit
-              </DropdownMenuItem>
-            )}
-            {canManage && (
-              <DropdownMenuItem variant="destructive" onClick={() => setDeletingCustomer(row.original)}>
-                <Trash2 /> Delete
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center justify-end gap-1">
+          <Button variant="outline" size="sm" onClick={() => navigate(`/sales/customers/${row.original.id}/360`)}>
+            <Eye className="size-4" /> 360°
+          </Button>
+          {canManage && (
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
+                <MoreHorizontal className="size-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => {
+                    setEditingCustomer(row.original)
+                    setFormOpen(true)
+                  }}
+                >
+                  <Pencil /> Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onClick={() => setDeletingCustomer(row.original)}>
+                  <Trash2 /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       ),
     },
   ]
