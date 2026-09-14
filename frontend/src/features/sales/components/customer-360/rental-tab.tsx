@@ -75,7 +75,7 @@ export function RentalTab({ customerId, active, rentalBookings }: RentalTabProps
                   <span className="text-muted-foreground">
                     {new Date(b.start_date).toLocaleDateString('en-IN')} – {!isOpen && b.end_date ? new Date(b.end_date).toLocaleDateString('en-IN') : 'Not available'}
                   </span>
-                  <span className="text-muted-foreground">{days != null ? `${days} days` : 'Open / Return Date Pending'}</span>
+                  <span className="text-muted-foreground">{isOpen ? 'Open / Return Date Pending' : days != null ? `${days} days` : 'Not available'}</span>
                   <StatusBadge status={b.status} label={RENTAL_BOOKING_STATUS_LABELS[b.status as keyof typeof RENTAL_BOOKING_STATUS_LABELS] ?? b.status} />
                   <button type="button" onClick={() => navigate('/sales/invoices')} className="text-left text-primary hover:underline disabled:text-muted-foreground disabled:no-underline" disabled={!invoice}>
                     {invoice ? `${invoice.invoice_number} · ₹${invoice.total.toLocaleString('en-IN')}` : 'Not invoiced yet'}
