@@ -63,6 +63,12 @@ export function RentalAgreementFormDialog({ open, onOpenChange, booking }: Renta
           <DialogDescription>
             {booking.rental_asset.asset_code} — {booking.rental_asset.name} for {booking.customer.name}, {new Date(booking.start_date).toLocaleDateString()} to{' '}
             {new Date(booking.end_date ?? booking.start_date).toLocaleDateString()}.
+            {(booking.location_from || booking.destination) && (
+              <>
+                {' '}
+                Route: {booking.location_from || 'Not available'} → {booking.destination || 'Not available'}.
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

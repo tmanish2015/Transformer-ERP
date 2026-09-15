@@ -44,6 +44,8 @@ export function RentalBookingFormDialog({ open, onOpenChange, presetCustomerId, 
     resolver: zodResolver(rentalBookingSchema),
     values: {
       rental_asset_id: presetAssetId ?? '',
+      location_from: '',
+      destination: '',
       start_date: new Date().toISOString().slice(0, 10),
       end_date: '',
       notes: '',
@@ -129,6 +131,17 @@ export function RentalBookingFormDialog({ open, onOpenChange, presetCustomerId, 
               {errors.rental_asset_id && <p className="text-xs text-destructive">{errors.rental_asset_id.message}</p>}
             </div>
           )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="location_from">Location From</Label>
+              <Input id="location_from" placeholder="e.g. Jaipur Warehouse" {...register('location_from')} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="destination">Destination</Label>
+              <Input id="destination" placeholder="e.g. Kota, Rajasthan" {...register('destination')} />
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">

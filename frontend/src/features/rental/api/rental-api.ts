@@ -251,6 +251,8 @@ export async function createRentalBooking(customerId: string, values: RentalBook
     .insert({
       customer_id: customerId,
       rental_asset_id: values.rental_asset_id,
+      location_from: values.location_from || null,
+      destination: values.destination || null,
       start_date: values.start_date,
       end_date: values.end_date || null,
       notes: values.notes || null,

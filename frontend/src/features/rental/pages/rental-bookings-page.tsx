@@ -35,6 +35,8 @@ export function RentalBookingsPage() {
     { id: 'booking_number', header: ({ column }) => <DataTableColumnHeader column={column} title="Booking #" />, accessorFn: (row) => row.booking_number },
     { id: 'customer', header: 'Customer', cell: ({ row }) => row.original.customer.name },
     { id: 'asset', header: 'Asset', cell: ({ row }) => `${row.original.rental_asset.asset_code} — ${row.original.rental_asset.name}` },
+    { id: 'location_from', header: 'From', cell: ({ row }) => row.original.location_from || <span className="text-muted-foreground">—</span> },
+    { id: 'destination', header: 'Destination', cell: ({ row }) => row.original.destination || <span className="text-muted-foreground">—</span> },
     {
       id: 'dates',
       header: 'Dates',

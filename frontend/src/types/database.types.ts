@@ -1253,6 +1253,8 @@ billing_address: string | null
           rental_asset_id: string
           start_date: string
           end_date: string | null
+          location_from: string | null
+          destination: string | null
           status: string
           notes: string | null
           created_by: string | null

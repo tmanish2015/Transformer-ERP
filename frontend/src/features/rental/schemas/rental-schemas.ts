@@ -53,6 +53,8 @@ export type RentalQuotationFormValues = z.infer<typeof rentalQuotationSchema>
 
 export const rentalBookingSchema = z.object({
   rental_asset_id: z.string().min(1, 'Asset is required'),
+  location_from: z.string().optional().or(z.literal('')),
+  destination: z.string().optional().or(z.literal('')),
   start_date: z.string().min(1, 'Start date is required'),
   end_date: z.string().optional().or(z.literal('')),
   notes: z.string().optional().or(z.literal('')),
