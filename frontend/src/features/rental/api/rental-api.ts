@@ -269,6 +269,27 @@ export async function cancelRentalBooking(id: string) {
   if (error) throw error
 }
 
+// Admin-only edit of an open booking's core fields. Authorization (the
+// rental.booking.edit permission), the confirmed-status/no-agreement-or-invoice
+// guards, date consistency, and asset-status reassignment are all enforced by
+// the trg_enforce_rental_booking_edit DB trigger -- this is a plain update, not
+// a second place that re-implements those rules.
+export async function updateRentalBooking(id: string, customerId: string, values: RentalBookingFormValues) {
+  const { error } = await supabase
+    .from('rental_bookings')
+    .update({
+      customer_id: customerId,
+      rental_asset_id: values.rental_asset_id,
+      location_from: values.location_from || null,
+      destination: values.destination || null,
+      start_date: values.start_date,
+      end_date: values.end_date || null,
+      notes: values.notes || null,
+    })
+    .eq('id', id)
+  if (error) throw error
+}
+
 // Records the machine physically coming back: sets end_date to the actual return
 // date (overwriting whatever expected date, if any, was given at booking time) and
 // closes the booking. Rental duration for invoicing is always start_date -> this
