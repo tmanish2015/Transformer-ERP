@@ -26,21 +26,24 @@ export function RentalAvailabilityPage() {
     return Array.from({ length: WINDOW_DAYS }, (_, i) => today + i * 86400000)
   }, [])
 
+  // Both a confirmed booking and an active agreement mean the same thing on this
+  // calendar -- the machine is out with a customer -- so occupied days are a
+  // single "On Rent" bucket rather than distinguishing which record sourced them.
   const occupiedByAsset = useMemo(() => {
     const today = toDateOnly(new Date())
-    const map = new Map<string, { from: number; to: number; kind: 'booked' | 'active' }[]>()
+    const map = new Map<string, { from: number; to: number }[]>()
     for (const booking of bookings ?? []) {
       if (booking.status !== 'confirmed') continue
       const list = map.get(booking.rental_asset_id) ?? []
       // No end date yet (return date unknown) -- treat it as occupying the whole visible window.
       const to = booking.end_date ? toDateOnly(new Date(booking.end_date)) : today + (WINDOW_DAYS - 1) * 86400000
-      list.push({ from: toDateOnly(new Date(booking.start_date)), to, kind: 'booked' })
+      list.push({ from: toDateOnly(new Date(booking.start_date)), to })
       map.set(booking.rental_asset_id, list)
     }
     for (const agreement of agreements ?? []) {
       if (agreement.status !== 'active') continue
       const list = map.get(agreement.rental_asset_id) ?? []
-      list.push({ from: toDateOnly(new Date(agreement.start_date)), to: toDateOnly(new Date(agreement.end_date)), kind: 'active' })
+      list.push({ from: toDateOnly(new Date(agreement.start_date)), to: toDateOnly(new Date(agreement.end_date)) })
       map.set(agreement.rental_asset_id, list)
     }
     return map
@@ -79,10 +82,8 @@ export function RentalAvailabilityPage() {
                         return (
                           <div
                             key={day}
-                            className={
-                              'mx-px h-5 w-7 shrink-0 rounded-sm ' + (match ? (match.kind === 'active' ? 'bg-chart-success/60' : 'bg-chart-info/50') : 'bg-muted')
-                            }
-                            title={match ? (match.kind === 'active' ? 'Out on rent' : 'Booked') : 'Available'}
+                            className={'mx-px h-5 w-7 shrink-0 rounded-sm ' + (match ? 'bg-chart-warning/60' : 'bg-muted')}
+                            title={match ? 'On Rent' : 'Available'}
                           />
                         )
                       })}
@@ -94,10 +95,7 @@ export function RentalAvailabilityPage() {
                     <span className="size-3 rounded-sm bg-muted" /> Available
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="size-3 rounded-sm bg-chart-info/50" /> Booked
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="size-3 rounded-sm bg-chart-success/60" /> Out on Rent
+                    <span className="size-3 rounded-sm bg-chart-warning/60" /> On Rent
                   </span>
                 </div>
               </div>

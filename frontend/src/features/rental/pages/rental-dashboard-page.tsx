@@ -11,7 +11,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { useRentalAssets } from '@/features/rental/hooks/use-rental-assets'
 import { useRentalInquiries } from '@/features/rental/hooks/use-rental-inquiries'
 import { useRentalBookings } from '@/features/rental/hooks/use-rental-bookings'
-import { RENTAL_ASSET_STATUS_LABELS } from '@/features/rental/types/rental-types'
+import { isRentalAssetOnRent, RENTAL_ASSET_STATUS_LABELS } from '@/features/rental/types/rental-types'
 import { statusColor } from '@/lib/chart-colors'
 
 export function RentalDashboardPage() {
@@ -24,7 +24,7 @@ export function RentalDashboardPage() {
   const stats = useMemo(() => {
     const allAssets = assets ?? []
     const available = allAssets.filter((a) => a.status === 'available').length
-    const outOnRent = allAssets.filter((a) => ['dispatched', 'running'].includes(a.status)).length
+    const outOnRent = allAssets.filter((a) => isRentalAssetOnRent(a.status)).length
     const openInquiries = (inquiries ?? []).filter((i) => i.status === 'open').length
     const activeBookings = (bookings ?? []).filter((b) => b.status === 'confirmed').length
     return { total: allAssets.length, available, outOnRent, openInquiries, activeBookings }
@@ -32,8 +32,15 @@ export function RentalDashboardPage() {
 
   const assetStatusData = useMemo(() => {
     const counts = new Map<string, number>()
-    for (const a of assets ?? []) counts.set(a.status, (counts.get(a.status) ?? 0) + 1)
-    return [...counts.entries()].map(([status, count]) => ({ status: RENTAL_ASSET_STATUS_LABELS[status as keyof typeof RENTAL_ASSET_STATUS_LABELS] ?? status, rawStatus: status, count }))
+    for (const a of assets ?? []) {
+      const key = isRentalAssetOnRent(a.status) ? 'on_rent' : a.status
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    return [...counts.entries()].map(([status, count]) => ({
+      status: status === 'on_rent' ? 'On Rent' : (RENTAL_ASSET_STATUS_LABELS[status as keyof typeof RENTAL_ASSET_STATUS_LABELS] ?? status),
+      rawStatus: status,
+      count,
+    }))
   }, [assets])
 
   return (

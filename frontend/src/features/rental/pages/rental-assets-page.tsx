@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useRentalAssets } from '@/features/rental/hooks/use-rental-assets'
 import { RentalAssetFormDialog } from '@/features/rental/components/rental-asset-form-dialog'
-import { RENTAL_ASSET_STATUS_LABELS, type RentalAssetWithCategory } from '@/features/rental/types/rental-types'
+import { isRentalAssetOnRent, RENTAL_ASSET_STATUS_LABELS, type RentalAssetWithCategory } from '@/features/rental/types/rental-types'
 import { useAuth } from '@/providers/auth-provider'
 
 export function RentalAssetsPage() {
@@ -25,7 +25,11 @@ export function RentalAssetsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [formOpen, setFormOpen] = useState(false)
 
-  const filtered = (assets ?? []).filter((a) => (statusFilter === 'all' ? true : a.status === statusFilter))
+  const filtered = (assets ?? []).filter((a) => {
+    if (statusFilter === 'all') return true
+    if (statusFilter === 'on_rent') return isRentalAssetOnRent(a.status)
+    return a.status === statusFilter
+  })
 
   const columns: ColumnDef<RentalAssetWithCategory>[] = [
     {
@@ -84,11 +88,11 @@ export function RentalAssetsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
-                {Object.entries(RENTAL_ASSET_STATUS_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
+                <SelectItem value="available">Available</SelectItem>
+                <SelectItem value="on_rent">On Rent</SelectItem>
+                <SelectItem value="returned">Returned</SelectItem>
+                <SelectItem value="maintenance">Maintenance</SelectItem>
+                <SelectItem value="retired">Retired</SelectItem>
               </SelectContent>
             </Select>
           </div>

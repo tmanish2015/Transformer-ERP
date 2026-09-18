@@ -20,14 +20,28 @@ export type RentalBookingStatus = 'confirmed' | 'cancelled' | 'completed'
 export type RentalAgreementStatus = 'active' | 'completed' | 'terminated'
 export type RentalConditionRating = 'good' | 'fair' | 'damaged'
 
+// Booked, Dispatched, and Running are three separate DB-level states (the
+// booking-only flow never leaves 'booked' until return/cancel; the
+// agreement+dispatch flow moves booked -> running when the machine physically
+// leaves) but all mean the same thing to a user glancing at the fleet: the
+// machine is currently rented out. Every user-facing surface (badges, filters,
+// KPIs, legends) collapses them to one "On Rent" label/tone; the database and
+// the Dispatch/Return button gating in the agreement flow still rely on the
+// real underlying values and are untouched.
 export const RENTAL_ASSET_STATUS_LABELS: Record<RentalAssetStatus, string> = {
   available: 'Available',
-  booked: 'Booked',
-  dispatched: 'Dispatched',
-  running: 'Running',
+  booked: 'On Rent',
+  dispatched: 'On Rent',
+  running: 'On Rent',
   returned: 'Returned',
   maintenance: 'Maintenance',
   retired: 'Retired',
+}
+
+export const RENTAL_ASSET_ON_RENT_STATUSES: readonly RentalAssetStatus[] = ['booked', 'dispatched', 'running']
+
+export function isRentalAssetOnRent(status: string): boolean {
+  return (RENTAL_ASSET_ON_RENT_STATUSES as readonly string[]).includes(status)
 }
 
 export const RENTAL_INQUIRY_STATUS_LABELS: Record<RentalInquiryStatus, string> = {

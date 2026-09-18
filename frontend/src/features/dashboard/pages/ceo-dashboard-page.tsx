@@ -19,6 +19,7 @@ import {
   useDashboardRepairJobs,
   useDashboardStockAlerts,
 } from '@/features/dashboard/hooks/use-ceo-dashboard'
+import { isRentalAssetOnRent } from '@/features/rental/types/rental-types'
 import { AskAiBox } from '@/features/dashboard/components/ask-ai-box'
 import { DASHBOARD_PERIOD_LABELS, type AgingBucket, type DashboardPeriod } from '@/features/dashboard/types/ceo-dashboard-types'
 
@@ -271,7 +272,7 @@ export function CeoDashboardPage() {
     const bookings = rentalBookings ?? []
     const total = assets.length
     const available = assets.filter((a) => a.status === 'available').length
-    const rented = assets.filter((a) => ['booked', 'dispatched', 'running'].includes(a.status)).length
+    const rented = assets.filter((a) => isRentalAssetOnRent(a.status)).length
     const maintenance = assets.filter((a) => a.status === 'maintenance').length
     const retired = assets.filter((a) => a.status === 'retired').length
     const usableFleet = total - retired
